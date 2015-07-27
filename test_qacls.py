@@ -195,3 +195,23 @@ class TestADQacls(unittest.TestCase):
         }
         self.assertEqual(ace_data_ro_target,
                          qacls.parse_ace(ace_data_ro_with_username))
+
+
+class TestDirectoryManipulation(unittest.TestCase):
+    def tearDown(self):
+        """delete any directory we created with the below"""
+        qacls.RC.fs.delete('/projects/')
+
+    def test_recreate_dirs_doesnt_throw_exception(self):
+        ace_domain_admins_ro = {
+            "type": "QFS_ACE_TYPE_ALLOWED",
+            "adgroupname": "domain admins",
+            "flags": INHERIT_ALL,
+            "rights": RO
+        }
+        local_skeleton = SKELETON = {
+            '/projects': [ace_domain_admins_ro]}
+        # create directory skeleton
+        qacls.create_skeleton(local_skeleton)
+        # create again, don't explode
+        qacls.create_skeleton(local_skeleton)

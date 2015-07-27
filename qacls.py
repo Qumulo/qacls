@@ -10,6 +10,7 @@ from pyad import aduser
 from pyad import adgroup
 
 from qumulo.rest_client import RestClient
+from qumulo.lib.request import RequestError
 
 # Get the configuration bits we need in this namespace
 from qacls_config import \
@@ -193,24 +194,30 @@ def parse_ace(ace):
         return ace
 
 
-def create_skeleton():
-    for key in SKELETON:
+def create_skeleton(skeleton):
+    for key in skeleton:
         #print key
         path, name = os.path.split(key)
-        print path, name
-        RC.fs.create_directory(name=name, dir_path=path)
+        print "Creating directory %s at path %s" % (name, path)
+        try:
+            RC.fs.create_directory(name=name, dir_path=path)
+        except RequestError, err:
+            if 'fs_entry_exists_error' in str(err):
+                print "Warning: Directory path already exists"
+            else:
+                raise
 
 
-def set_acls():
-    for key in SKELETON:
-        for ace in SKELETON[key]:
+def set_acls(skeleton):
+    for key in skeleton:
+        for ace in skeleton[key]:
             parse_ace(ace)
-        RC.fs.set_acl(path=key, control=CONTROL_DEFAULT, aces=SKELETON[key])
+        RC.fs.set_acl(path=key, control=CONTROL_DEFAULT, aces=skeleton[key])
 
 
 def main():
-    create_skeleton()
-    set_acls()
+    create_skeleton(SKELETON)
+    set_acls(SKELETON)
 
 
 if __name__ == '__main__':
