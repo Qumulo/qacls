@@ -6,6 +6,7 @@ import collections
 import argparse
 import posixpath
 import imp
+import copy
 
 import pyad.adquery
 
@@ -15,21 +16,29 @@ from pyad import adgroup
 from qumulo.rest_client import RestClient
 from qumulo.lib.request import RequestError
 
+# set some defaults, possibly only needed by tests
+AD_USER_BASE_DN = "CN=users, DC=demo, DC=int"
+AD_GROUP_BASE_DN = "CN=users, DC=demo, DC=int"
+
 
 def load_config(filename):
     global qacls_config
     global SKELETON
     global RC
 
-    # print args.config
+    if args.verbose:
+        print "args: " + str(args)
+        print "Filename: " + filename
     try:
-        qacls_config = imp.load_source('qacls_config', args.config)
+        qacls_config = imp.load_source('qacls_config', filename)
         if args.verbose:
             print "%s found, loading..." % filename
     except IOError, err:
         print "ERROR: " + str(err)
         sys.exit(2)
 
+    if args.verbose:
+        print dir(qacls_config)
     # Get the configuration bits we need in this namespace
     global PROTO_SKELETON
     global API
@@ -188,6 +197,9 @@ def gid_from_groupname(groupname):
 
 
 def parse_ace(ace):
+    """return a list of ACEs
+    usually this is just a single ACE but for duplicate entries we will need it
+    """
     # if we find a 'trustee' just return
     if 'trustee' in ace.keys():
         return ace
@@ -215,6 +227,20 @@ def parse_ace(ace):
         ace['trustee'] = str(qid)
         del ace['nfsgroupname']
         return ace
+    elif 'groupname' in ace.keys():
+        """return a list of aces for each auth scheme
+        ace will be uid/gid, ace2 will be rid
+        """
+        ace2 = copy.copy(ace)
+        groupname = ace['groupname']
+        qid = qid_from_nfsgroup(groupname)
+        qid2 = qid_from_groupname(groupname)
+        ace['trustee'] = str(qid)
+        del ace['groupname']
+        ace2['trustee'] = str(qid2)
+        del ace2['groupname']
+        acelist = [ace, ace2]
+        return acelist
 
 
 def create_skeleton(skeleton):
@@ -262,7 +288,7 @@ def validate_args():
             raise
 
 
-def main():
+def create_parser():
     global parser
     parser.add_argument("config", help="name of config file",
                         nargs='?',
@@ -275,8 +301,16 @@ def main():
                         default="/")
     global args
     args = parser.parse_args()
-    load_config(args.root[0])
-    validate_args()
+
+
+def get_config():
+    load_config(args.config)
+
+
+def main():
+    create_parser()
+    load_config(args.config)
+    validate_args()  # We should be trying and catching exceptions instead
     create_skeleton(SKELETON)
     set_acls(SKELETON)
 

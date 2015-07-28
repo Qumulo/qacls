@@ -8,6 +8,12 @@ import qacls
 from qacls import QID_UID_BASE, QID_GID_BASE
 
 # Some global defaults for testing
+API = {
+    'host': '192.168.11.147',
+    'port': '8000',
+    'user': 'admin',
+    'pass': 'a'
+}
 INHERIT_ALL = [
     "QFS_ACE_FLAG_OBJECT_INHERIT",
     "QFS_ACE_FLAG_CONTAINER_INHERIT"
@@ -20,6 +26,12 @@ RO = [
     "QFS_ACCESS_EXECUTE",
     "QFS_ACCESS_SYNCHRONIZE"
 ]
+
+from qumulo.rest_client import RestClient
+
+RC = RestClient(address=API['host'], port=API['port'])
+RC.login(username=API['user'], password=API['pass'])
+
 
 class TestQacls(unittest.TestCase):
     def test_uid_to_qid_root(self):
@@ -109,7 +121,7 @@ class TestADQacls(unittest.TestCase):
         uid_target = 10000
         self.assertEqual(uid_target, qacls.uid_from_username(username))
 
-    def test_gid_from_groupname_production(self):
+    def test_gid_from_groupname_accounting(self):
         groupname = 'accounting'
         gid_target = 10003
         self.assertEqual(gid_target, qacls.gid_from_groupname(groupname))
@@ -196,22 +208,37 @@ class TestADQacls(unittest.TestCase):
         self.assertEqual(ace_data_ro_target,
                          qacls.parse_ace(ace_data_ro_with_username))
 
+    def test_parse_ace_groupname_to_trustee(self):
+        ace_data_ro_with_groupname = {
+            "type": "QFS_ACE_TYPE_ALLOWED",
+            "groupname": "production",
+            "flags": INHERIT_ALL,
+            "rights": RO
+        }
+        ace_data_ro_target = [
+            {
+                "type": "QFS_ACE_TYPE_ALLOWED",
+                "trustee": "17179879186",
+                "flags": INHERIT_ALL,
+                "rights": RO
+            },
+            {
+                "type": "QFS_ACE_TYPE_ALLOWED",
+                "trustee": "21474837590",
+                "flags": INHERIT_ALL,
+                "rights": RO
+            }
+        ]
+        result = qacls.parse_ace(ace_data_ro_with_groupname)
+        print result
+        self.assertEqual(ace_data_ro_target, result)
+
 
 class TestDirectoryManipulation(unittest.TestCase):
     def tearDown(self):
         """delete any directory we created with the below"""
-        qacls.RC.fs.delete('/projects/')
-
-    def test_recreate_dirs_doesnt_throw_exception(self):
-        ace_domain_admins_ro = {
-            "type": "QFS_ACE_TYPE_ALLOWED",
-            "adgroupname": "domain admins",
-            "flags": INHERIT_ALL,
-            "rights": RO
-        }
-        local_skeleton = SKELETON = {
-            '/projects': [ace_domain_admins_ro]}
-        # create directory skeleton
-        qacls.create_skeleton(local_skeleton)
-        # create again, don't explode
-        qacls.create_skeleton(local_skeleton)
+        try:
+            RC.fs.delete('/projects/')
+        except qacls.RequestError:
+            print "Warning: couldn't delete /projects/"
+            pass
