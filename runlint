@@ -1,0 +1,9 @@
+#!/bin/bash
+
+function error()
+{
+    echo -e "\n\n\n\tERROR: Please fix the errors shown above and rerun- check the output above\n\n\n"
+    exit 1
+}
+
+find . -name "*qacls*.py" | xargs pylint --rcfile pylint.rc || error
