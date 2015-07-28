@@ -77,17 +77,10 @@ INHERIT_ALL = [
 # ACEs. Can define as many as desired, as long as "flags" and "rights" are
 # defined previously. For identity, may use 'trustee' for QID, 'adgroupname'
 # for ad group, and 'adusername' for ad user
-# TODO: add 'groupname' and 'username' for duplicate ACEs in a mixed environment
+# TODO: add 'username' for duplicate ACEs in a mixed environment
 ACE_DOMAIN_ADMINS_FC = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "domain admins",
-    "flags": INHERIT_ALL,
-    "rights": FC
-}
-
-ACE_DOMAIN_ADMINS_FC_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "domain admins",
+    "groupname": "domain admins",
     "flags": INHERIT_ALL,
     "rights": FC
 }
@@ -101,70 +94,35 @@ ACE_ACCOUNTING_RW = {
 
 ACE_DATA_RO = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "data",
-    "flags": INHERIT_ALL,
-    "rights": RO
-}
-
-ACE_DATA_RO_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "data",
+    "groupname": "data",
     "flags": INHERIT_ALL,
     "rights": RO
 }
 
 ACE_DATA_RW = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "data",
-    "flags": INHERIT_ALL,
-    "rights": RW
-}
-
-ACE_DATA_RW_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "data",
+    "groupname": "data",
     "flags": INHERIT_ALL,
     "rights": RW
 }
 
 ACE_PRODUCTION_RO = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "production",
-    "flags": INHERIT_ALL,
-    "rights": RO
-}
-
-ACE_PRODUCTION_RO_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "production",
+    "groupname": "production",
     "flags": INHERIT_ALL,
     "rights": RO
 }
 
 ACE_PRODUCTION_RW = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "production",
-    "flags": INHERIT_ALL,
-    "rights": RW
-}
-
-ACE_PRODUCTION_RW_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "production",
+    "groupname": "production",
     "flags": INHERIT_ALL,
     "rights": RW
 }
 
 ACE_DOMAIN_USERS_RO = {
     "type": "QFS_ACE_TYPE_ALLOWED",
-    "adgroupname": "domain users",
-    "flags": INHERIT_ALL,
-    "rights": RO
-}
-
-ACE_DOMAIN_USERS_RO_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
-    "nfsgroupname": "domain users",
+    "groupname": "domain users",
     "flags": INHERIT_ALL,
     "rights": RO
 }
@@ -202,46 +160,34 @@ ACE_ADMINISTRATOR_FC_NFS = {
 PROTO_SKELETON = {
     '/projects': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_ADMINISTRATOR_FC,
         ACE_ADMINISTRATOR_FC_NFS,
         ACE_DOMAIN_USERS_RO,
-        ACE_DOMAIN_USERS_RO_NFS,
         ACE_NFS_XP_RO
     ],
     '/projects/project1': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_DOMAIN_USERS_RO,
-        ACE_DOMAIN_USERS_RO_NFS,
         ACE_NFS_XP_RO
     ],
     '/projects/project1/00_ingest': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_PRODUCTION_RO,
-        ACE_PRODUCTION_RO_NFS,
         ACE_DATA_RW,
-        ACE_DATA_RW_NFS,
         ACE_NFS_XP_RW
     ],
     '/projects/project1/01_working': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_PRODUCTION_RW
     ],
     '/projects/project1/02_delivery': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_PRODUCTION_RW,
-        ACE_PRODUCTION_RW_NFS,
         ACE_DATA_RW
     ],
     '/projects/project1/03_archive': [
         ACE_DOMAIN_ADMINS_FC,
-        ACE_DOMAIN_ADMINS_FC_NFS,
         ACE_PRODUCTION_RO,
-        ACE_PRODUCTION_RO_NFS,
         ACE_DATA_RW
     ],
     '/projects/project1/accounting': [
