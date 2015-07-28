@@ -1,8 +1,11 @@
 __author__ = 'mbott'
 
 
-import os
+import sys
 import collections
+import argparse
+import posixpath
+import imp
 
 import pyad.adquery
 
@@ -12,22 +15,42 @@ from pyad import adgroup
 from qumulo.rest_client import RestClient
 from qumulo.lib.request import RequestError
 
-# Get the configuration bits we need in this namespace
-from qacls_config import \
-    PROTO_SKELETON, \
-    API, \
-    AD_GROUP_BASE_DN, \
-    AD_USER_BASE_DN, \
-    CONTROL_DEFAULT
+
+def load_config(filename):
+    global qacls_config
+    global SKELETON
+    global RC
+
+    # print args.config
+    try:
+        qacls_config = imp.load_source('qacls_config', args.config)
+        if args.verbose:
+            print "%s found, loading..." % filename
+    except IOError, err:
+        print "ERROR: " + str(err)
+        sys.exit(2)
+
+    # Get the configuration bits we need in this namespace
+    global PROTO_SKELETON
+    global API
+    global AD_GROUP_BASE_DN
+    global AD_USER_BASE_DN
+    global CONTROL_DEFAULT
+    from qacls_config import \
+        PROTO_SKELETON, \
+        API, \
+        AD_GROUP_BASE_DN, \
+        AD_USER_BASE_DN, \
+        CONTROL_DEFAULT
+
+    SKELETON = collections.OrderedDict(sorted(PROTO_SKELETON.items()))
+
+    RC = RestClient(address=API['host'], port=API['port'])
+    RC.login(username=API['user'], password=API['pass'])
 
 QID_UID_BASE = 3 << 32
 QID_GID_BASE = 4 << 32
 QID_AD1_BASE = 5 << 32  # Only works with one domain right now
-
-SKELETON = collections.OrderedDict(sorted(PROTO_SKELETON.items()))
-
-RC = RestClient(address=API['host'], port=API['port'])
-RC.login(username=API['user'], password=API['pass'])
 
 
 def uid_to_qid(uid):
@@ -196,14 +219,17 @@ def parse_ace(ace):
 
 def create_skeleton(skeleton):
     for key in skeleton:
-        #print key
-        path, name = os.path.split(key)
-        print "Creating directory %s at path %s" % (name, path)
+        path, name = posixpath.split(key)
+        path = posixpath.join(args.root[0], path.lstrip('/'))
+        if args.verbose:
+            print "Real path root is " + path
+            print "Creating directory %s at path %s" % (name, path)
         try:
             RC.fs.create_directory(name=name, dir_path=path)
         except RequestError, err:
             if 'fs_entry_exists_error' in str(err):
-                print "Warning: Directory path already exists"
+                if args.verbose:
+                    print "Warning: Directory path already exists"
             else:
                 raise
 
@@ -212,10 +238,45 @@ def set_acls(skeleton):
     for key in skeleton:
         for ace in skeleton[key]:
             parse_ace(ace)
-        RC.fs.set_acl(path=key, control=CONTROL_DEFAULT, aces=skeleton[key])
+        path = posixpath.join(args.root[0], key.lstrip('/'))
+        RC.fs.set_acl(path=path, control=CONTROL_DEFAULT, aces=skeleton[key])
+
+
+parser = argparse.ArgumentParser(description="Create and modify ACLs on "
+                                             "directory trees.")
+args = None
+
+
+def validate_args():
+    """Make sure root, if given, exists
+    Maybe later we can validate if the tree exists already and offer a chance
+    to bail out
+    """
+    try:
+        RC.fs.get_attr(path=args.root[0])
+    except RequestError, err:
+        if 'fs_no_such_entry_error' in str(err):
+            print "ERROR: requested root %s does not exist" % args.root[0]
+            sys.exit(1)
+        else:
+            raise
 
 
 def main():
+    global parser
+    parser.add_argument("config", help="name of config file",
+                        nargs='?',
+                        default="qacls_config.py")
+    parser.add_argument("-v", "--verbose",
+                        help="increase verbosity of output",
+                        action="store_true")
+    parser.add_argument("-r", "--root", help="desired location of skeleton",
+                        nargs=1,
+                        default="/")
+    global args
+    args = parser.parse_args()
+    load_config(args.root[0])
+    validate_args()
     create_skeleton(SKELETON)
     set_acls(SKELETON)
 
