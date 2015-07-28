@@ -37,8 +37,6 @@ def load_config(filename):
         print "ERROR: " + str(err)
         sys.exit(2)
 
-    if args.verbose:
-        print dir(qacls_config)
     # Get the configuration bits we need in this namespace
     global PROTO_SKELETON
     global API
@@ -261,11 +259,17 @@ def create_skeleton(skeleton):
 
 
 def set_acls(skeleton):
+    acelist = []
     for key in skeleton:
         for ace in skeleton[key]:
-            parse_ace(ace)
+            aces = parse_ace(ace)
+            if isinstance(aces, list):
+                acelist.extend(aces)
+            else:
+                acelist.append(aces)
+        #print acelist
         path = posixpath.join(args.root[0], key.lstrip('/'))
-        RC.fs.set_acl(path=path, control=CONTROL_DEFAULT, aces=skeleton[key])
+        RC.fs.set_acl(path=path, control=CONTROL_DEFAULT, aces=acelist)
 
 
 parser = argparse.ArgumentParser(description="Create and modify ACLs on "
