@@ -22,6 +22,10 @@ AD_GROUP_BASE_DN = "CN=users, DC=demo, DC=int"
 
 
 def load_config(filename):
+    """Given a filename, import that name into the namespace at qacls_config
+    Also import some stuff we want in the top-level namespace
+    importing this stuff seems to break testing
+    """
     global qacls_config
     global SKELETON
     global RC
@@ -263,7 +267,8 @@ def set_acls(skeleton):
     for key in skeleton:
         for ace in skeleton[key]:
             aces = parse_ace(ace)
-            if isinstance(aces, list):
+            if isinstance(aces, list):  # because sometimes parse_ace() returns
+                                        # a list
                 acelist.extend(aces)
             else:
                 acelist.append(aces)
