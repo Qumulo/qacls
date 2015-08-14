@@ -84,7 +84,43 @@ PROTO_SKELETON = {
 
 Run qacls.py to create the desired directory structure and ACLs.
 
+### EXAMPLES:
 
+Note that most of the ACL examples result in inheritable ACLs, which will
+ultimately behave differently from standard POSIX mode bits.
+
+Some examples to closely mimic behavior of POSIX mode bits:
+
+#### Mode 775 Example
+
+```
+Directory name '/foo'
+Mode 775
+user:   pablo
+group:  staff
+(-rwxrwxr-x pablo staff)
+```
+
+```python
+ACE_USER_PABLO_RW = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "adusername": "pablo",
+    "flags": INHERIT_ALL,
+    "rights": RW
+}
+ACE_GROUP_STAFF_RW = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "groupname": "domain admins",
+    "flags": INHERIT_ALL,
+    "rights": RW
+}
+ACE_EVERYONE_RO = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "trustee": "8589934592",
+    "flags": INHERIT_ALL,
+    "rights": RO
+}
+```
 
 ### MANIFEST:
 
@@ -101,8 +137,6 @@ pyad, which depends on pywin32
 ### TODO:
 
 * Throw a proper exception when we can't add a trustee to an ACE (malformed ACE)
-* Add automatic dual-ACEs using 'username' and 'groupname'
-* Add command-line options framework
 * Change to a more portable LDAP-only instead of pywin32)
 
 ### KNOWN ISSUES:
