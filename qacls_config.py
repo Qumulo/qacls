@@ -74,6 +74,16 @@ INHERIT_ALL = [
     "QFS_ACE_FLAG_CONTAINER_INHERIT"
 ]
 
+INHERIT_ALL_INHERITED = [
+    "QFS_ACE_FLAG_OBJECT_INHERIT",
+    "QFS_ACE_FLAG_CONTAINER_INHERIT",
+    "QFS_ACE_FLAG_INHERITED"
+]
+
+INHERITED = [
+    "QFS_ACE_FLAG_INHERITED"
+]
+
 # ACEs. Can define as many as desired, as long as "flags" and "rights" are
 # defined previously. For identity, may use 'trustee' for QID, 'adgroupname'
 # for ad group, and 'adusername' for ad user
@@ -153,6 +163,20 @@ ACE_ADMINISTRATOR_FC_NFS = {
     "flags": INHERIT_ALL,
     "nfsusername": "administrator",
     "rights": FC
+}
+
+ACE_EVERYONE_RW = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "flags": INHERIT_ALL,
+    "trustee": "8589934592",
+    "rights": RW
+}
+
+ACE_GUEST_RW = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "flags": INHERIT_ALL,
+    "trustee": "501",
+    "rights": RW
 }
 
 # Directory prototype. This defines what will get created when qacls.py is run
