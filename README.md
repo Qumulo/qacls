@@ -84,6 +84,8 @@ PROTO_SKELETON = {
 
 Run qacls.py to create the desired directory structure and ACLs.
 
+Run qacls_push.py to push a desired set of ACEs into a directory tree.
+
 ### EXAMPLES:
 
 Note that most of the ACL examples result in inheritable ACLs, which will
@@ -124,10 +126,12 @@ ACE_EVERYONE_RO = {
 
 ### MANIFEST:
 
-README.txt
+README.md
 qacls_config.py
 test_qacls.py
 qacls.py
+test_qacls_push.py
+qacls_push.py
 
 
 ### DEPENDENCIES:

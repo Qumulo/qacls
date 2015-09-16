@@ -25,20 +25,24 @@ class QaclsCommand(object):
         parser = argparse.ArgumentParser()
         parser.add_argument("--ip", "--host", default=qacls_config.API['host'],
                             dest="host", required=False,
-                            help="specify host for sync source")
+                            help="specify target cluster address")
         parser.add_argument("-P", "--port", type=int, dest="port",
                             default=qacls_config.API['port'], required=False,
-                            help="specify port on sync source to use for sync")
+                            help="specify port on target cluster")
         parser.add_argument("-u", "--user", default=qacls_config.API['user'],
                             dest="user", required=False,
-                            help="specify user credentials for login")
+                            help="specify user credentials for API login")
         parser.add_argument("--pass", default=qacls_config.API['pass'],
                             dest="passwd", required=False,
-                            help="specify user pwd for login")
+                            help="specify user pwd for API login")
         parser.add_argument("-a", "--ace", action="append",
-                            help="ACEs for the ACL to push, defined in config")
+                            help="ACE name for the ACL to push, defined in "
+                                 "config. Can add multiples by specifying -a "
+                                 "multiple times.")
         parser.add_argument("start_path", action="store",
-                            help="Directory to start perms push")
+                            help="Directory to start perms push. This directory"
+                                 " will get an uninherited version of the "
+                                 "specified ACL.")
 
         self.args = parser.parse_args()
 
@@ -52,15 +56,15 @@ class QaclsCommand(object):
 
     def login(self, args):
         try:
-            self.connection = qumulo.lib.request.Connection(\
-                                args.host, int(args.port))
-            login_results, _ = qumulo.rest.auth.login(\
-                    self.connection, None, args.user, args.passwd)
+            self.connection = qumulo.lib.request.Connection(args.host,
+                                                            int(args.port))
+            login_results, _ = qumulo.rest.auth.login(self.connection, None,
+                                                      args.user, args.passwd)
 
-            self.credentials = qumulo.lib.auth.Credentials.\
-                    from_login_response(login_results)
-        except Exception, excpt:
-            print "Error connecting to the REST server: %s" % excpt
+            self.credentials = qumulo.lib.auth.Credentials.from_login_response(
+                login_results)
+        except Exception, e:
+            print "Error connecting to the REST server: %s" % e
             print __doc__
             sys.exit(1)
 
@@ -71,7 +75,8 @@ class QaclsCommand(object):
                    path=path, control=qacls_config.CONTROL_DEFAULT,
                    aces=[
                        process_ace(getattr(qacls_config, ace_name),
-                                   is_directory=True, is_root=True) \
+                                   is_directory=True,
+                                   is_root=True)
                        for ace_name in self.args.ace])
         # process the rest
         self.process_directory(path)
@@ -84,13 +89,15 @@ class QaclsCommand(object):
 
     def process_directory_contents(self, directory_contents, path):
         for entry in directory_contents:
-            ace_list = [getattr(qacls_config, ace_name) for ace_name in self.args.ace]
+            ace_list = [getattr(qacls_config, ace_name)
+                        for ace_name in self.args.ace]
             # if this is a folder, set the ACL then process its contents
             if entry['type'] == 'FS_FILE_TYPE_DIRECTORY':
                 fs.set_acl(self.connection, self.credentials,
                            path=os.path.join(path, entry['name']),
                            control=qacls_config.CONTROL_DEFAULT,
-                           aces=[process_ace(ace, is_directory=True) for ace in ace_list])
+                           aces=[process_ace(ace, is_directory=True)
+                                 for ace in ace_list])
 
                 # Since this is a directory, process it anew
                 new_path = path + entry['name'] + '/'
@@ -100,7 +107,8 @@ class QaclsCommand(object):
                 fs.set_acl(self.connection, self.credentials,
                            path=os.path.join(path, entry['name']),
                            control=qacls_config.CONTROL_DEFAULT,
-                           aces=[process_ace(ace, is_file=True) for ace in ace_list])
+                           aces=[process_ace(ace, is_file=True)
+                                 for ace in ace_list])
 
 
 def process_ace(ace, is_file=False, is_directory=False, is_root=False):
