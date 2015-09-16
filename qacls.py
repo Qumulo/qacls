@@ -1,7 +1,25 @@
+#!/usr/bin/env python
+"""qacls.py
+Usage: qacls.py [CONFIGNAME] -r ROOT_DIR [-v]
+
+WINDOWS ONLY
+
+Creates a directory tree according to the ACL skeleton defined in CONFIGNAME.
+If no CONFIGNAME is given, qacls_config.py is used. This tool assumes that the
+qumulo cluster pointed at by the information in CONFIGNAME/qacls_config.py is
+joined to an AD domain. It also assumes that the user is running on a windows
+machine joined to said domain.
+"""
+
 __author__ = 'mbott'
 
 
 import sys
+from sys import platform
+if platform != 'win32':
+    print "Sorry, qacls.py is currently win32 only. Exiting..."
+    sys.exit(1)
+
 import collections
 import argparse
 import posixpath
