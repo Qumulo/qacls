@@ -126,12 +126,12 @@ ACE_EVERYONE_RO = {
 
 ### MANIFEST:
 
-README.md
-qacls_config.py
-test_qacls.py
-qacls.py
-test_qacls_push.py
-qacls_push.py
+* README.md
+* qacls_config.py
+* test_qacls.py
+* qacls.py
+* test_qacls_push.py
+* qacls_push.py
 
 
 ### DEPENDENCIES:
