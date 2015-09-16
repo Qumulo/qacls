@@ -36,6 +36,8 @@ FC = [
     "QFS_ACCESS_WRITE_GROUP",
     "QFS_ACCESS_DELETE",
     "QFS_ACCESS_EXECUTE",
+    "QFS_ACCESS_MODIFY",
+    "QFS_ACCESS_EXTEND",
     "QFS_ACCESS_ADD_FILE",
     "QFS_ACCESS_ADD_SUBDIR",
     "QFS_ACCESS_DELETE_CHILD",
@@ -52,6 +54,8 @@ RW = [
     "QFS_ACCESS_WRITE_ATTR",
     "QFS_ACCESS_DELETE",
     "QFS_ACCESS_EXECUTE",
+    "QFS_ACCESS_MODIFY",
+    "QFS_ACCESS_EXTEND",
     "QFS_ACCESS_ADD_FILE",
     "QFS_ACCESS_ADD_SUBDIR",
     "QFS_ACCESS_DELETE_CHILD",
@@ -176,6 +180,20 @@ ACE_GUEST_RW = {
     "type": "QFS_ACE_TYPE_ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "501",
+    "rights": RW
+}
+
+ACE_ADMIN_FC = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "flags": INHERIT_ALL,
+    "trustee": "500",
+    "rights": FC
+}
+
+ACE_NFSNOBODY_RW = {
+    "type": "QFS_ACE_TYPE_ALLOWED",
+    "flags": INHERIT_ALL,
+    "trustee": "17179934718",
     "rights": RW
 }
 
