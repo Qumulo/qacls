@@ -136,6 +136,7 @@ ACE_EVERYONE_RO = {
 
 ### DEPENDENCIES:
 
+qumulo-api
 pyad, which depends on pywin32
 
 ### TODO:
@@ -145,5 +146,5 @@ pyad, which depends on pywin32
 
 ### KNOWN ISSUES:
 
-* Only works under Windows today (depends on pyad/pywin32)
+* qacls.py only works under Windows today (depends on pyad/pywin32)
 * `runtests` not useful yet, use runtests.bat on Windows
