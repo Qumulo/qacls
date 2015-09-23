@@ -70,40 +70,43 @@ class QaclsCommand(object):
         """set ACLs properly on all paths"""
         # set it on the root first
         try:
-            fs.set_acl(self.connection, self.credentials,
-                       path=path, control=qacls_config.CONTROL_DEFAULT,
-                       aces=[
-                           process_ace(getattr(qacls_config, ace_name),
-                                       is_directory=True,
-                                       is_root=True)
-                           for ace_name in self.args.ace])
+            self.fs_set_acl(path, is_directory=True, is_root=True)
         except qumulo.lib.request.RequestError:
             # most likely we have a borked token, try to login again
             self.login(self.args)
-            fs.set_acl(self.connection, self.credentials,
-                       path=path, control=qacls_config.CONTROL_DEFAULT,
-                       aces=[
-                           process_ace(getattr(qacls_config, ace_name),
-                                       is_directory=True,
-                                       is_root=True)
-                           for ace_name in self.args.ace])
+            self.fs_set_acl(path, is_directory=True, is_root=True)
 
         # process the rest
         self.process_directory(path)
 
+    def fs_set_acl(self, path,
+                   is_file=False, is_directory=False, is_root=False):
+        """wrapper for fs.set_acl()"""
+        return fs.set_acl(self.connection,
+                          self.credentials,
+                          path=path,
+                          control=qacls_config.CONTROL_DEFAULT,
+                          aces=[process_ace(getattr(qacls_config, ace_name),
+                                            is_directory=is_directory,
+                                            is_root=is_root,
+                                            is_file=is_file)
+                                for ace_name in self.args.ace])
+
+    def fs_read_dir(self, path):
+        """wrapper for fs.read_entire_directory()"""
+        return fs.read_entire_directory(self.connection,
+                                        self.credentials,
+                                        page_size=5000,
+                                        path=path)
+
     def process_directory(self, path):
+        """read directory contents, kick off processing of same"""
         try:
-            response = fs.read_entire_directory(self.connection,
-                                                self.credentials,
-                                                page_size=5000,
-                                                path=path)
+            response = self.fs_read_dir(path)
         except qumulo.lib.request.RequestError:
             # most likely our token has timed out, try to login again
             self.login(self.args)
-            response = fs.read_entire_directory(self.connection,
-                                                self.credentials,
-                                                page_size=5000,
-                                                path=path)
+            response = self.fs_read_dir(path)
         try:
             for r in response:
                 self.process_directory_contents(r.data['files'], path)
@@ -113,24 +116,17 @@ class QaclsCommand(object):
                 self.process_directory_contents(r.data['files'], path)
 
     def process_directory_contents(self, directory_contents, path):
+        """do the right thing for files and directories"""
         for entry in directory_contents:
-            ace_list = [getattr(qacls_config, ace_name)
-                        for ace_name in self.args.ace]
             # if this is a folder, set the ACL then process its contents
             if entry['type'] == 'FS_FILE_TYPE_DIRECTORY':
                 try:
-                    fs.set_acl(self.connection, self.credentials,
-                               path=os.path.join(path, entry['name']),
-                               control=qacls_config.CONTROL_DEFAULT,
-                               aces=[process_ace(ace, is_directory=True)
-                                     for ace in ace_list])
+                    self.fs_set_acl(os.path.join(path, entry['name']),
+                                    is_directory=True)
                 except qumulo.lib.request.RequestError:
                     self.login(self.args)
-                    fs.set_acl(self.connection, self.credentials,
-                               path=os.path.join(path, entry['name']),
-                               control=qacls_config.CONTROL_DEFAULT,
-                               aces=[process_ace(ace, is_directory=True)
-                                     for ace in ace_list])
+                    self.fs_set_acl(os.path.join(path, entry['name']),
+                                    is_directory=True)
 
                 # Since this is a directory, process it anew
                 new_path = path + entry['name'] + '/'
@@ -138,19 +134,13 @@ class QaclsCommand(object):
             # if it is a file, set the ACL appropriately
             elif entry['type'] == 'FS_FILE_TYPE_FILE':
                 try:
-                    fs.set_acl(self.connection, self.credentials,
-                               path=os.path.join(path, entry['name']),
-                               control=qacls_config.CONTROL_DEFAULT,
-                               aces=[process_ace(ace, is_file=True)
-                                     for ace in ace_list])
+                    self.fs_set_acl(os.path.join(path, entry['name']),
+                                    is_file=True)
                 except qumulo.lib.request.RequestError:
                     # login again since we most likely are not authed
                     self.login(self.args)
-                    fs.set_acl(self.connection, self.credentials,
-                               path=os.path.join(path, entry['name']),
-                               control=qacls_config.CONTROL_DEFAULT,
-                               aces=[process_ace(ace, is_file=True)
-                                     for ace in ace_list])
+                    self.fs_set_acl(os.path.join(path, entry['name']),
+                                    is_file=True)
 
 
 def process_ace(ace, is_file=False, is_directory=False, is_root=False):
