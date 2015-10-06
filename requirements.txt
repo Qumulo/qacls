@@ -1,0 +1,5 @@
+# Currently Windows-only due to pywin32 requirement
+# NOTE: qacls_push.py does not depend on pywin32!
+qumulo_api>=1.2.11
+pyad
+pywin32
