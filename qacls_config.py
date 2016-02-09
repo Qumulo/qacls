@@ -15,8 +15,8 @@ AD_USER_BASE_DN = "CN=users, DC=demo, DC=int"
 AD_GROUP_BASE_DN = "CN=users, DC=demo, DC=int"
 
 CONTROL_DEFAULT = [
-    "QFS_ACL_CONTROL_PRESENT",
-    "QFS_ACL_CONTROL_AUTO_INHERIT"
+    "PRESENT",
+    "AUTO_INHERIT"
 ]
 
 # Repeatable sets of rights
@@ -25,67 +25,67 @@ CONTROL_DEFAULT = [
 
 # Full Control
 FC = [
-    "QFS_ACCESS_READ",
-    "QFS_ACCESS_READ_EA",
-    "QFS_ACCESS_READ_ATTR",
-    "QFS_ACCESS_READ_ACL",
-    "QFS_ACCESS_WRITE_EA",
-    "QFS_ACCESS_WRITE_ATTR",
-    "QFS_ACCESS_WRITE_ACL",
-    "QFS_ACCESS_CHANGE_OWNER",
-    "QFS_ACCESS_WRITE_GROUP",
-    "QFS_ACCESS_DELETE",
-    "QFS_ACCESS_EXECUTE",
-    "QFS_ACCESS_MODIFY",
-    "QFS_ACCESS_EXTEND",
-    "QFS_ACCESS_ADD_FILE",
-    "QFS_ACCESS_ADD_SUBDIR",
-    "QFS_ACCESS_DELETE_CHILD",
-    "QFS_ACCESS_SYNCHRONIZE"
+    "READ",
+    "READ_EA",
+    "READ_ATTR",
+    "READ_ACL",
+    "WRITE_EA",
+    "WRITE_ATTR",
+    "WRITE_ACL",
+    "CHANGE_OWNER",
+    "WRITE_GROUP",
+    "DELETE",
+    "EXECUTE",
+    "MODIFY",
+    "EXTEND",
+    "ADD_FILE",
+    "ADD_SUBDIR",
+    "DELETE_CHILD",
+    "SYNCHRONIZE"
 ]
 
 # Read-write
 RW = [
-    "QFS_ACCESS_READ",
-    "QFS_ACCESS_READ_EA",
-    "QFS_ACCESS_READ_ATTR",
-    "QFS_ACCESS_READ_ACL",
-    "QFS_ACCESS_WRITE_EA",
-    "QFS_ACCESS_WRITE_ATTR",
-    "QFS_ACCESS_DELETE",
-    "QFS_ACCESS_EXECUTE",
-    "QFS_ACCESS_MODIFY",
-    "QFS_ACCESS_EXTEND",
-    "QFS_ACCESS_ADD_FILE",
-    "QFS_ACCESS_ADD_SUBDIR",
-    "QFS_ACCESS_DELETE_CHILD",
-    "QFS_ACCESS_SYNCHRONIZE"
+    "READ",
+    "READ_EA",
+    "READ_ATTR",
+    "READ_ACL",
+    "WRITE_EA",
+    "WRITE_ATTR",
+    "DELETE",
+    "EXECUTE",
+    "MODIFY",
+    "EXTEND",
+    "ADD_FILE",
+    "ADD_SUBDIR",
+    "DELETE_CHILD",
+    "SYNCHRONIZE"
 ]
 
 # Read-only
 RO = [
-    "QFS_ACCESS_READ",
-    "QFS_ACCESS_READ_EA",
-    "QFS_ACCESS_READ_ATTR",
-    "QFS_ACCESS_READ_ACL",
-    "QFS_ACCESS_EXECUTE",
-    "QFS_ACCESS_SYNCHRONIZE"
+    "READ",
+    "READ_EA",
+    "READ_ATTR",
+    "READ_ACL",
+    "EXECUTE",
+    "SYNCHRONIZE"
 ]
 
 # Inheritance. Can define multiples and reference them in individual ACLs below
 INHERIT_ALL = [
-    "QFS_ACE_FLAG_OBJECT_INHERIT",
-    "QFS_ACE_FLAG_CONTAINER_INHERIT"
+    "OBJECT_INHERIT",
+    "CONTAINER_INHERIT"
 ]
 
 INHERIT_ALL_INHERITED = [
-    "QFS_ACE_FLAG_OBJECT_INHERIT",
-    "QFS_ACE_FLAG_CONTAINER_INHERIT",
-    "QFS_ACE_FLAG_INHERITED"
+    "OBJECT_INHERIT",
+    "CONTAINER_INHERIT",
+    "INHERITED"
 ]
 
 INHERITED = [
-    "QFS_ACE_FLAG_INHERITED"
+    "INHERITED"
 ]
 
 # ACEs. Can define as many as desired, as long as "flags" and "rights" are
@@ -93,105 +93,105 @@ INHERITED = [
 # for ad group, and 'adusername' for ad user
 # TODO: add 'username' for duplicate ACEs in a mixed environment
 ACE_DOMAIN_ADMINS_FC = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "domain admins",
     "flags": INHERIT_ALL,
     "rights": FC
 }
 
 ACE_ACCOUNTING_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "adgroupname": "accounting",
     "flags": INHERIT_ALL,
     "rights": RW
 }
 
 ACE_DATA_RO = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "data",
     "flags": INHERIT_ALL,
     "rights": RO
 }
 
 ACE_DATA_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "data",
     "flags": INHERIT_ALL,
     "rights": RW
 }
 
 ACE_PRODUCTION_RO = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "production",
     "flags": INHERIT_ALL,
     "rights": RO
 }
 
 ACE_PRODUCTION_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "production",
     "flags": INHERIT_ALL,
     "rights": RW
 }
 
 ACE_DOMAIN_USERS_RO = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "groupname": "domain users",
     "flags": INHERIT_ALL,
     "rights": RO
 }
 
 ACE_NFS_XP_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "12884961889",
     "rights": RW
 }
 
 ACE_NFS_XP_RO = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "12884961889",
     "rights": RO
 }
 
 ACE_ADMINISTRATOR_FC = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "adusername": "administrator",
     "rights": FC
 }
 
 ACE_ADMINISTRATOR_FC_NFS = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "nfsusername": "administrator",
     "rights": FC
 }
 
 ACE_EVERYONE_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "8589934592",
     "rights": RW
 }
 
 ACE_GUEST_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "501",
     "rights": RW
 }
 
 ACE_ADMIN_FC = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "500",
     "rights": FC
 }
 
 ACE_NFSNOBODY_RW = {
-    "type": "QFS_ACE_TYPE_ALLOWED",
+    "type": "ALLOWED",
     "flags": INHERIT_ALL,
     "trustee": "17179934718",
     "rights": RW
