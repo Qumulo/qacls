@@ -15,8 +15,8 @@ AD_USER_BASE_DN = "CN=users, DC=demo, DC=int"
 AD_GROUP_BASE_DN = "CN=users, DC=demo, DC=int"
 
 CONTROL_DEFAULT = [
-    #"PRESENT",
-    #"AUTO_INHERIT"
+    "QFS_ACL_CONTROL_PRESENT",
+    "QFS_ACL_CONTROL_AUTO_INHERIT"
 ]
 
 # Repeatable sets of rights
