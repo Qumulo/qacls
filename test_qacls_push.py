@@ -31,14 +31,6 @@ class TestQaclsPush(unittest.TestCase):
         result = qacls_push.process_ace(ACE, is_file=True)
         self.assertEqual(result['flags'], qacls_config.INHERITED)
 
-    def test_directory_set_acl_with_broken_creds(self):
-        """directory_set_acl() should work if we have a login timed out"""
-        sys.argv = ['./qacls_push.py', '/', '-a', 'ACE_NFSNOBODY_RW']
-        Q = qacls_push.QaclsCommand()
-        print Q.credentials.bearer_token
-        Q.credentials.bearer_token = 'borked'
-        Q.directory_set_acl('/')
-
     def test_process_directory_without_login(self):
         """process_directory() should work if our bearer token is borked"""
         sys.argv = ['./qacls_push.py', '/', '-a', 'ACE_NFSNOBODY_RW']
