@@ -1,11 +1,19 @@
 #!/usr/bin/env python
-"""qacls_push.py
-Usage: qacls_push.py ROOT -a ACE_NAME -a ACE_NAME...
+"""Examples:
+        qacls_push.py ROOT -a ACE_NAME -a ACE_NAME...
+        qacls_push.py ROOT -U 500 -G 80 -M 0770
 
-Pushes the ACL defined by all ACEs specified with the -a flag down the tree
-whose root is at ROOT. ROOT gets the original, uninherited version of this ACL.
-All directories get object and container inherit flags, plus the inherited flag.
-All files just get the inherited flag, because you can't inherit from a file.
+The first usage pushes the ACL defined by all ACEs specified with the -a flag
+down the tree whose root is at ROOT. ROOT gets the original, uninherited version
+of this ACL. All directories get object and container inherit flags, plus the
+inherited flag. All files just get the inherited flag, because you can't inherit
+from a file.
+
+The second usage pushes the mode specified with -M, the uid specified with -U,
+and the gid specified with -G starting at the root.
+
+The two uses are mutually exclusive, and using -a and (-U, -G, -M) options
+together may lead to unpredictable results.
 """
 
 __author__ = 'mbott'
@@ -13,6 +21,7 @@ __author__ = 'mbott'
 import sys
 import os
 import argparse
+import json
 
 import qumulo.lib.auth
 import qumulo.lib.request
@@ -20,9 +29,22 @@ import qumulo.rest.fs as fs
 import qacls_config
 
 
+QID_UID_BASE = 3 << 32
+QID_GID_BASE = 4 << 32
+
+
+def uid_to_qid(uid):
+    return QID_UID_BASE + int(uid)
+
+
+def gid_to_qid(gid):
+    return QID_GID_BASE + int(gid)
+
+
 class QaclsCommand(object):
     def __init__(self):
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(description=__doc__,
+                                         formatter_class=argparse.RawDescriptionHelpFormatter)
         parser.add_argument("--ip", "--host", default=qacls_config.API['host'],
                             dest="host", required=False,
                             help="specify target cluster address")
@@ -43,6 +65,12 @@ class QaclsCommand(object):
                             help="Directory to start perms push. This directory"
                                  " will get an uninherited version of the "
                                  "specified ACL.")
+        parser.add_argument("-U", "--uid", dest="uid", required=False,
+                            help="specify user id to be included in the push.")
+        parser.add_argument("-G", "--gid", dest="gid", required=False,
+                            help="specify group id to be included in the push.")
+        parser.add_argument("-M", "--mode", dest="mode", required=False,
+                            help="specify mode bits (octal) to be included in the push.")
 
         self.args = parser.parse_args()
 
@@ -81,16 +109,41 @@ class QaclsCommand(object):
 
     def fs_set_acl(self, path,
                    is_file=False, is_directory=False, is_root=False):
-        """wrapper for fs.set_acl()"""
-        return fs.set_acl(self.connection,
-                          self.credentials,
-                          path=path,
-                          control=qacls_config.CONTROL_DEFAULT,
-                          aces=[process_ace(getattr(qacls_config, ace_name),
-                                            is_directory=is_directory,
-                                            is_root=is_root,
-                                            is_file=is_file)
-                                for ace_name in self.args.ace])
+        """wrapper for fs.set_acl() OR fs.set_attr() depending on options"""
+        if not (self.args.uid and self.args.gid and self.args.mode):
+            return fs.set_acl(self.connection,
+                              self.credentials,
+                              path=path,
+                              control=qacls_config.CONTROL_DEFAULT,
+                              aces=[process_ace(getattr(qacls_config, ace_name),
+                                                is_directory=is_directory,
+                                                is_root=is_root,
+                                                is_file=is_file)
+                                    for ace_name in self.args.ace])
+        else:
+            return self.fs_set_attr(path)
+
+    def fs_set_attr(self, path):
+        """wrapper for fs.set_attr(), since PATCH doesn't work right we need to
+        read the attributes and replace the ones we care about, then write them
+        back to the cluster"""
+        response = fs.get_attr(self.connection, self.credentials, path=path)
+        attrs = json.loads(str(response))
+        if self.args.uid:
+            attrs['uid'] = uid_to_qid(self.args.uid)
+        if self.args.gid:
+            attrs['gid'] = gid_to_qid(self.args.gid)
+        if self.args.mode:
+            attrs['mode'] = self.args.mode
+        fs.set_attr(self.connection, self.credentials,
+                    mode=attrs['mode'],
+                    owner=attrs['uid'],
+                    group=attrs['gid'],
+                    size=attrs['size'],
+                    modification_time=attrs['modification_time'],
+                    change_time=attrs['change_time'],
+                    path=path)
+
 
     def fs_read_dir(self, path):
         """wrapper for fs.read_entire_directory()"""
