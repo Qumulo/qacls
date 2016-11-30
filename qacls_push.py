@@ -28,6 +28,19 @@ import qumulo.lib.request
 import qumulo.rest.fs as fs
 import qacls_config
 
+# Disable SSL Verification
+# TODO: fix this by providing expected certificate from Qumulo API server
+# perhaps on install?
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    # Legacy Python that doesn't verify HTTPS certificates by default
+    pass
+else:
+    # Handle target environment that doesn't support HTTPS verification
+    ssl._create_default_https_context = _create_unverified_https_context
 
 QID_UID_BASE = 3 << 32
 QID_GID_BASE = 4 << 32
@@ -143,7 +156,6 @@ class QaclsCommand(object):
                     modification_time=attrs['modification_time'],
                     change_time=attrs['change_time'],
                     path=path)
-
 
     def fs_read_dir(self, path):
         """wrapper for fs.read_entire_directory()"""
