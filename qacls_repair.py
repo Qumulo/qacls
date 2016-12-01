@@ -63,7 +63,6 @@ class QaclsRepair(qacls_push.QaclsCommand):
 
     def get_acl(self, path):
         """path=path of dir or file, returns JSON of acl"""
-        print path
         result, _ = fs.get_acl(self.connection, self.credentials, path=path)
         return result
 

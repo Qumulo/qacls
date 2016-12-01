@@ -15,7 +15,22 @@ License for the specific language governing permissions and limitations under
 the License.
 ```
 
-### HOWTO:
+### INTRO:
+
+Qacls is a collection of permissions management tools that work via the Qumulo
+Core API. Anecdotal evidence suggests it is a bit faster than chmod -R or Windows
+Explorer.
+
+There are 3 main tools, all of which depend on qacls_config.py:
+
+* qacls.py - Create directory skeletons with fiddly permission sets
+* qacls_push.py - Push a set of ACES or POSIX modes/owner/group down the
+specified tree, doing the Right Things with inheritance.
+* qacls_repair.py - Reads the ACL and attributes from the specified directory and
+repairs all permissions inside said directory accordingly. It will push either
+POSIX modes/owner/group or an ACL (if generated is False).
+
+### SETUP:
 
 Install dependencies with pip:
 
@@ -61,6 +76,8 @@ ACE_ACCOUNTING_RW = {
 }
 ```
 
+### QACLS.PY HOWTO
+
 Set up your directory skeleton with paths and ACLs:
 
 ```python
@@ -84,7 +101,24 @@ PROTO_SKELETON = {
 
 Run qacls.py to create the desired directory structure and ACLs.
 
-Run qacls_push.py to push a desired set of ACEs into a directory tree.
+### QACLS_PUSH HOWTO
+
+Run qacls_push.py to push a desired set of ACEs into a directory tree (specify
+multiples by repeating -a ACE at the command line:
+
+```
+# ./qacls_push.py /path/to/broken/permissions/ -a ACE_EVERYONE_RW -a ACE_GUEST_RW -a ACE_ADMIN_FC -a ACE_NFSNOBODY_RW
+```
+
+### QACLS_REPAIR HOWTO
+
+Run qacls_repair.py on a directory that has a tree with sideways permissions,
+and it will do its best to make all the permission in the tree match the
+chosen directory:
+
+```
+# ./qacls_repair.py /path/to/directory
+```
 
 ### EXAMPLES:
 
@@ -132,17 +166,24 @@ ACE_EVERYONE_RO = {
 * qacls.py
 * test_qacls_push.py
 * qacls_push.py
+* test_qacls_repair.py
+* qacls_repair.py
 
 
 ### DEPENDENCIES:
 
 qumulo-api
-pyad, which depends on pywin32
+qacls.py depends on pyad, which depends on pywin32
+qacls_push.py and qacls_repair.py do not depend on pywin32
 
 ### TODO:
 
+These are not in priority order.
+
 * Throw a proper exception when we can't add a trustee to an ACE (malformed ACE)
 * Change to a more portable LDAP-only instead of pywin32)
+* Progress meter. Traditionally these were hard for jobs like this, but AGGREGATES!
+* Multithreading (really, just better performance)
 
 ### KNOWN ISSUES:
 

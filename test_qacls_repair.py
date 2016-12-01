@@ -1,5 +1,3 @@
-__author__ = 'mbott'
-
 import sys
 import unittest
 
@@ -36,8 +34,6 @@ class TestQaclsRepair(unittest.TestCase):
         fs.set_acl(self.Q.connection, self.Q.credentials, path="/testdir_acl",
                    control=qacls_config.CONTROL_DEFAULT,
                    aces=[qacls_config.ACE_ADMIN_FC])
-
-
 
     def tearDown(self):
         FILES = ['/testfile',
@@ -108,8 +104,8 @@ class TestQaclsRepair(unittest.TestCase):
         fs.set_attr(self.Q.connection,
                     self.Q.credentials,
                     mode='0644',
-                    owner=12884901888,
-                    group=17179869184,
+                    owner='12884901888',
+                    group='17179869184',
                     size=attrs['size'],
                     modification_time=attrs['modification_time'],
                     change_time=attrs['change_time'],
