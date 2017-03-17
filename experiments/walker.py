@@ -7,13 +7,14 @@ import qumulo.lib
 import qumulo.rest
 import qumulo.rest.fs as fs
 
-NUM_WORKERS = 4
+NUM_WORKERS = 2
 API = {
     'host': '192.168.11.147',
     'port': '8000',
     'user': 'admin',
     'pass': 'a'
 }
+POLLING_INTERVAL = 1
 
 
 def login():
@@ -26,16 +27,14 @@ def login():
 
         credentials = qumulo.lib.auth.Credentials.from_login_response(
             login_results)
-        # print connection
-        # print credentials
-        return (connection, credentials)
+        return connection, credentials
     except Exception, e:
         print "Error connecting to the REST server: %s" % e
-        #print __doc__
         sys.exit(1)
 
 
-def walker_main(queue, count, lock):
+def walker_main(queue, dir_count, file_count, dirs_processed, lock,
+                connection, credentials):
     """Walker process, managed by a process pool, fed a queue
     1) consume a directory from the queue
     2) for each from the list of things in the directory
@@ -44,16 +43,12 @@ def walker_main(queue, count, lock):
     """
     print os.getpid(), "working"
 
-    connection, credentials = login()
-    # print connection
-    # print credentials
-
     while True:
-        directory = queue.get(True, 10)
-        with lock:
-            count.value += 1
+        directory = queue.get(True)
+        # with lock:
+        #     count.value += 1
 
-        print os.getpid(), "got directory", directory
+        # print os.getpid(), "got directory", directory
         # 1) list the directory we got
         response = fs.read_entire_directory(connection, credentials,
                                             page_size=5000, path=directory)
@@ -77,13 +72,19 @@ def walker_main(queue, count, lock):
             # print r.data
             # dir_list.extend([i['name'] for i in r.data['files']
             #                  if i['type'] == 'FS_FILE_TYPE_DIRECTORY'])
-        print os.getpid(), "dir_list", dir_list
-        print os.getpid(), "file_list", file_list
+        # print os.getpid(), "dir_list", dir_list
+        # print os.getpid(), "file_list", file_list
         for d in dir_list:
             #target_dir = os.path.join(directory, d) + '/'
             # print "target_dir to put on queue: %s" % target_dir
-            print os.getpid(), "putting %s on queue" % d
+            # print os.getpid(), "putting %s on queue" % d
             queue.put(d)
+
+        # Account for what we processed in the synced counts
+        with lock:
+            dir_count.value = dir_count.value - 1
+            file_count.value = file_count.value - len(file_list)
+            dirs_processed.value += 1
 
         #3) For each item in 'files' that is "type": "FS_FILE_TYPE_FILE"
         #    set the ACL, inherited"""
@@ -92,14 +93,42 @@ def walker_main(queue, count, lock):
 
 
 if __name__ == '__main__':
-    dir_count = multiprocessing.Value('i',0)
+    connection, credentials = login()
+    agg_result, _ = fs.read_dir_aggregates(connection, credentials, '/')
+
+    print "total directories to process:", int(agg_result['total_directories']) + 1
+    print "total files to process:", agg_result['total_files']
+
+    # Synced counters for progress and determining done-ness
+    dir_count = multiprocessing.Value('i',  # add one for root!
+                                      int(agg_result['total_directories']) + 1)
+    file_count = multiprocessing.Value('i',
+                                       int(agg_result['total_files']))
+    dirs_processed = multiprocessing.Value('i', 0)
+
+    # Need this lock to update above synced Values
     lock = multiprocessing.Lock()
+
+    # Set up queue and worker pool
     the_queue = multiprocessing.Queue()
-    the_pool = multiprocessing.Pool(NUM_WORKERS,
-                                    walker_main,
-                                    (the_queue, dir_count, lock,))
+    the_pool = multiprocessing.Pool(NUM_WORKERS, walker_main,
+                                    (the_queue, dir_count,
+                                     file_count, dirs_processed,
+                                     lock, connection, credentials,))
+
+    # Initialize queue
+    # TODO: This should take a command-line parameter
     the_queue.put("/")
-    time.sleep(10) # horrible hack to make the queue persist long enough for
-                   # walkers to add more directories to it
+
+    # once the dir_count gets to 0 we break and the program will exit once
+    # the queue is empty and the walkers are blocked
+    while True:
+        time.sleep(POLLING_INTERVAL)
+        with lock:
+            if dir_count.value <= 0:
+                break
+            print "%i files, %i directories remaining" % (file_count.value,
+                                                          dir_count.value)
+
     with lock:
-        print "Finished: %i directories processed" % dir_count.value
+        print "Finished: %i directories processed" % dirs_processed.value
