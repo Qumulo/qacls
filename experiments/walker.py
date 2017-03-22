@@ -7,6 +7,7 @@ import qumulo.lib.auth
 import qumulo.rest
 import qumulo.rest.fs as fs
 
+START_PATH = '/'
 NUM_WALKERS = 1
 NUM_SETTERS = 10
 API = {
@@ -128,8 +129,9 @@ def get_attr(setter_queue, dirs_processed, files_processed,
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     connection, credentials = login()
-    agg_result, _ = fs.read_dir_aggregates(connection, credentials, '/')
+    agg_result, _ = fs.read_dir_aggregates(connection, credentials, START_PATH)
 
     dir_count = int(agg_result['total_directories']) + 1
     file_count = int(agg_result['total_files'])
@@ -143,11 +145,7 @@ if __name__ == '__main__':
     walker_qlen = Counter()
     setter_qlen = Counter()
 
-    # Need this lock_counts to update above synced Values
-    # lock_counts = multiprocessing.Lock()
-    # lock_qlen = multiprocessing.Lock()
-
-    # Set up queue and worker pools
+    # Set up queues and worker pools
     setter_queue = multiprocessing.Queue()
     walker_queue = multiprocessing.Queue()
     setter_pool = multiprocessing.Pool(NUM_SETTERS, get_attr,
@@ -159,15 +157,10 @@ if __name__ == '__main__':
                                         walker_qlen, setter_qlen,))
 
     # Initialize queue with a fileinfo JSON
-    # TODO: This should take a command-line parameter
-    start_path = '/'
-    # with lock_qlen:
-    #     walker_queue.put(start_path)
-    #     walker_qlen.value += 1
-    walker_queue.put(start_path)
+    walker_queue.put(START_PATH)
     walker_qlen.increment()
 
-    root_info, _ = fs.get_attr(connection, credentials, path=start_path)
+    root_info, _ = fs.get_attr(connection, credentials, path=START_PATH)
 
     # with lock_qlen:
     #     setter_queue.put(root_info)
@@ -175,17 +168,29 @@ if __name__ == '__main__':
     setter_queue.put(root_info)
     setter_qlen.increment()
 
+    # performance counters
+    last_files_processed = 0
+    last_directories_processed = 0
+
     # once dirs_processed and files_processed reach their goals we break and
     # this will exit once the queues are empty and the worker pools are blocked
     while True:
         time.sleep(POLLING_INTERVAL)
         if dirs_processed.value() >= dir_count and files_processed.value() >= file_count:
             break
-        print "f:%i/%i d:%i/%i wql:%i sql: %i" % (files_processed.value(),
+        fp = files_processed.value()
+        fps = (fp - last_files_processed) / POLLING_INTERVAL
+        last_files_processed = fp
+        dp = dirs_processed.value()
+        dps = (dp - last_directories_processed) / POLLING_INTERVAL
+        last_directories_processed = dp
+        print "f:%i/%i d:%i/%i fps:%i dps:%i wql:%i sql:%i" % (files_processed.value(),
                                                   file_count,
                                                   dirs_processed.value(),
                                                   dir_count,
+                                                  fps, dps,
                                                   walker_qlen.value(),
                                                   setter_qlen.value())
 
     print "Finished: %i directories and %i files processed" % (dirs_processed.value(), files_processed.value())
+    print "%f seconds elapsed" % (time.time() - start_time)
