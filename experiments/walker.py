@@ -2,19 +2,41 @@ import multiprocessing
 import os, sys
 import time
 
-from qumulo.rest_client import RestClient
 import qumulo.lib
+import qumulo.lib.auth
 import qumulo.rest
 import qumulo.rest.fs as fs
 
-NUM_WORKERS = 2
+NUM_WALKERS = 1
+NUM_SETTERS = 10
 API = {
     'host': '192.168.11.147',
     'port': '8000',
     'user': 'admin',
     'pass': 'a'
 }
-POLLING_INTERVAL = 1
+POLLING_INTERVAL = 2
+
+connection=None
+credentials=None
+
+
+class Counter(object):
+    def __init__(self, initial_value=0):
+        self.val = multiprocessing.Value('i', initial_value)
+        self.lock = multiprocessing.Lock()
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    def decrement(self):
+        with self.lock:
+            self.val.value -= 1
+
+    def value(self):
+        with self.lock:
+            return self.val.value
 
 
 def login():
@@ -33,102 +55,137 @@ def login():
         sys.exit(1)
 
 
-def walker_main(queue, dir_count, file_count, dirs_processed, lock,
-                connection, credentials):
-    """Walker process, managed by a process pool, fed a queue
-    1) consume a directory from the queue
+def walker_main(walker_q, setter_q, walker_ql, setter_ql):
+    """Walker process, managed by a process pool, fed a walker_q
+    1) consume a directory from the walker_q
     2) for each from the list of things in the directory
         if it's a file, print it (later we'll do something useful with it)
-        if it's a directory, print it then add it to the queue
+        if it's a directory, print it then add it to the walker_q
     """
-    print os.getpid(), "working"
+    print os.getpid(), "walker()"
 
     while True:
-        directory = queue.get(True)
-        # with lock:
-        #     count.value += 1
+        directory = walker_q.get(True)
+        walker_ql.decrement()
+        # with lock_qlen:
+        #     directory = walker_q.get(True)
+        #     wql.value -= 1
 
-        # print os.getpid(), "got directory", directory
-        # 1) list the directory we got
+        #print os.getpid(), "Walker got", directory
+
         response = fs.read_entire_directory(connection, credentials,
                                             page_size=5000, path=directory)
 
-        # 2) for each item in 'files' that is "type": "FS_FILE_TYPE_DIRECTORY"
-        #    add to the queue
-        #    set the ACL, inherited, inheritance
         dir_list = []
         file_list = []
-        # print response
-        # count = 0
+
         for r in response:
             # count = count + 1
             # print "Item %s from response: " % str(count)
-            dir_list = [i['path'] for i in r.data['files']
+            dir_list = [i for i in r.data['files']
                         if i['type'] == 'FS_FILE_TYPE_DIRECTORY']
-            file_list = [i['name'] for i in r.data['files']
+            file_list = [i for i in r.data['files']
                          if i['type'] == 'FS_FILE_TYPE_FILE']
-            # print dir(r)
-            # print r
-            # print r.data
-            # dir_list.extend([i['name'] for i in r.data['files']
-            #                  if i['type'] == 'FS_FILE_TYPE_DIRECTORY'])
-        # print os.getpid(), "dir_list", dir_list
-        # print os.getpid(), "file_list", file_list
+
         for d in dir_list:
-            #target_dir = os.path.join(directory, d) + '/'
-            # print "target_dir to put on queue: %s" % target_dir
-            # print os.getpid(), "putting %s on queue" % d
-            queue.put(d)
+            setter_q.put(d)
+            setter_ql.increment()
+            walker_q.put(d['path'])
+            walker_ql.increment()
+            # with lock_qlen:
+            #     walker_q.put(d['path'])
+            #     wql.value += 1
 
-        # Account for what we processed in the synced counts
-        with lock:
-            dir_count.value = dir_count.value - 1
-            file_count.value = file_count.value - len(file_list)
-            dirs_processed.value += 1
+        for f in file_list:
+            setter_q.put(f)
+            setter_ql.increment()
+            # with lock_qlen:
+            #     setter_q.put(f)
+            #     sql.value += 1
 
-        #3) For each item in 'files' that is "type": "FS_FILE_TYPE_FILE"
-        #    set the ACL, inherited"""
-        # print os.getpid(), "got", directory
-        #time.sleep(1) # simulate a "long" operation
+
+def get_attr(setter_queue, dirs_processed, files_processed,
+             setter_qlength):
+    print os.getpid(), "setter()"
+    while True:
+        # with lock_q:
+        #     file_info = setter_queue.get(True)
+        #     setter_qlength -= 1
+        file_info = setter_queue.get(True)
+        setter_qlength.decrement()
+        if file_info['type'] == 'FS_FILE_TYPE_DIRECTORY':
+            path = file_info['path']
+            fs.get_attr(connection, credentials, path=path)
+            # with lock_c:
+            #     dirs_processed.value += 1
+            dirs_processed.increment()
+        elif file_info['type'] == 'FS_FILE_TYPE_FILE':
+            path = file_info['path']
+            fs.get_attr(connection, credentials, path=path)
+            # with lock_c:
+            #     files_processed.value += 1
+            files_processed.increment()
 
 
 if __name__ == '__main__':
     connection, credentials = login()
     agg_result, _ = fs.read_dir_aggregates(connection, credentials, '/')
 
-    print "total directories to process:", int(agg_result['total_directories']) + 1
-    print "total files to process:", agg_result['total_files']
+    dir_count = int(agg_result['total_directories']) + 1
+    file_count = int(agg_result['total_files'])
+
+    print "total directories to process:", dir_count
+    print "total files to process:", file_count
 
     # Synced counters for progress and determining done-ness
-    dir_count = multiprocessing.Value('i',  # add one for root!
-                                      int(agg_result['total_directories']) + 1)
-    file_count = multiprocessing.Value('i',
-                                       int(agg_result['total_files']))
-    dirs_processed = multiprocessing.Value('i', 0)
+    dirs_processed = Counter()
+    files_processed = Counter()
+    walker_qlen = Counter()
+    setter_qlen = Counter()
 
-    # Need this lock to update above synced Values
-    lock = multiprocessing.Lock()
+    # Need this lock_counts to update above synced Values
+    # lock_counts = multiprocessing.Lock()
+    # lock_qlen = multiprocessing.Lock()
 
-    # Set up queue and worker pool
-    the_queue = multiprocessing.Queue()
-    the_pool = multiprocessing.Pool(NUM_WORKERS, walker_main,
-                                    (the_queue, dir_count,
-                                     file_count, dirs_processed,
-                                     lock, connection, credentials,))
+    # Set up queue and worker pools
+    setter_queue = multiprocessing.Queue()
+    walker_queue = multiprocessing.Queue()
+    setter_pool = multiprocessing.Pool(NUM_SETTERS, get_attr,
+                                       (setter_queue,
+                                        dirs_processed, files_processed,
+                                        setter_qlen,))
+    walker_pool = multiprocessing.Pool(NUM_WALKERS, walker_main,
+                                       (walker_queue, setter_queue,
+                                        walker_qlen, setter_qlen,))
 
-    # Initialize queue
+    # Initialize queue with a fileinfo JSON
     # TODO: This should take a command-line parameter
-    the_queue.put("/")
+    start_path = '/'
+    # with lock_qlen:
+    #     walker_queue.put(start_path)
+    #     walker_qlen.value += 1
+    walker_queue.put(start_path)
+    walker_qlen.increment()
 
-    # once the dir_count gets to 0 we break and the program will exit once
-    # the queue is empty and the walkers are blocked
+    root_info, _ = fs.get_attr(connection, credentials, path=start_path)
+
+    # with lock_qlen:
+    #     setter_queue.put(root_info)
+    #     setter_qlen.value += 1
+    setter_queue.put(root_info)
+    setter_qlen.increment()
+
+    # once dirs_processed and files_processed reach their goals we break and
+    # this will exit once the queues are empty and the worker pools are blocked
     while True:
         time.sleep(POLLING_INTERVAL)
-        with lock:
-            if dir_count.value <= 0:
-                break
-            print "%i files, %i directories remaining" % (file_count.value,
-                                                          dir_count.value)
+        if dirs_processed.value() >= dir_count and files_processed.value() >= file_count:
+            break
+        print "f:%i/%i d:%i/%i wql:%i sql: %i" % (files_processed.value(),
+                                                  file_count,
+                                                  dirs_processed.value(),
+                                                  dir_count,
+                                                  walker_qlen.value(),
+                                                  setter_qlen.value())
 
-    with lock:
-        print "Finished: %i directories processed" % dirs_processed.value
+    print "Finished: %i directories and %i files processed" % (dirs_processed.value(), files_processed.value())
