@@ -8,21 +8,23 @@ import qumulo.lib.auth
 import qumulo.rest
 import qumulo.rest.fs as fs
 
-START_PATH = '/'
-NUM_WALKERS = 1
-NUM_SETTERS = 10
-API = {
-    'host': '192.168.11.147',
-    'port': '8000',
-    'user': 'admin',
-    'pass': 'a'
-}
-POLLING_INTERVAL = 2
-QUEUE_TIMEOUT = 2
-QUEUE_WAIT = 2
+from walker_config import START_PATH, NUM_WALKERS, NUM_SETTERS, API, POLLING_INTERVAL, QUEUE_TIMEOUT, QUEUE_WAIT
 
-connection = None
-credentials = None
+# START_PATH = '/'
+# NUM_WALKERS = 1
+# NUM_SETTERS = 10
+# API = {
+#     'host': '192.168.11.147',
+#     'port': '8000',
+#     'user': 'admin',
+#     'pass': 'a'
+# }
+# POLLING_INTERVAL = 2
+# QUEUE_TIMEOUT = 2
+# QUEUE_WAIT = 2
+#
+# connection = None
+# credentials = None
 
 
 class Counter(object):
@@ -101,6 +103,7 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
         for f in file_list:
             while True:
                 try:
+                    print os.getpid(), "Putting %s on setter queue" % f['path']
                     setter_q.put(f, QUEUE_TIMEOUT)
                     setter_ql.increment()
                     break

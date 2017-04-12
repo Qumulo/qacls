@@ -1,0 +1,12 @@
+START_PATH = '/'
+NUM_WALKERS = 1
+NUM_SETTERS = 10
+API = {
+    'host': '192.168.11.147',
+    'port': '8000',
+    'user': 'admin',
+    'pass': 'a'
+}
+POLLING_INTERVAL = 2
+QUEUE_TIMEOUT = 2
+QUEUE_WAIT = 2
