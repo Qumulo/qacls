@@ -75,6 +75,7 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
                 walker_ql.decrement()
                 break
             except Empty:
+                print os.getpid(), "Timed out waiting on walker queue get"
                 time.sleep(QUEUE_WAIT)
                 pass
 
@@ -103,6 +104,7 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
                     setter_ql.increment()
                     break
                 except Empty:
+                    print os.getpid(), "Timed out waiting on setter queue put"
                     time.sleep(QUEUE_WAIT)
                     pass
 
