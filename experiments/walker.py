@@ -1,4 +1,5 @@
 import multiprocessing
+from Queue import Empty
 import os, sys
 import time
 
@@ -17,9 +18,11 @@ API = {
     'pass': 'a'
 }
 POLLING_INTERVAL = 2
+QUEUE_TIMEOUT = 2
+QUEUE_WAIT = 2
 
-connection=None
-credentials=None
+connection = None
+credentials = None
 
 
 class Counter(object):
@@ -66,13 +69,14 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
     print os.getpid(), "walker()"
 
     while True:
-        directory = walker_q.get(True)
-        walker_ql.decrement()
-        # with lock_qlen:
-        #     directory = walker_q.get(True)
-        #     wql.value -= 1
-
-        #print os.getpid(), "Walker got", directory
+        while True:
+            try:
+                directory = walker_q.get(True, QUEUE_TIMEOUT)
+                walker_ql.decrement()
+                break
+            except Empty:
+                time.sleep(QUEUE_WAIT)
+                pass
 
         response = fs.read_entire_directory(connection, credentials,
                                             page_size=5000, path=directory)
@@ -81,8 +85,6 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
         file_list = []
 
         for r in response:
-            # count = count + 1
-            # print "Item %s from response: " % str(count)
             dir_list = [i for i in r.data['files']
                         if i['type'] == 'FS_FILE_TYPE_DIRECTORY']
             file_list = [i for i in r.data['files']
@@ -93,38 +95,31 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
             setter_ql.increment()
             walker_q.put(d['path'])
             walker_ql.increment()
-            # with lock_qlen:
-            #     walker_q.put(d['path'])
-            #     wql.value += 1
 
         for f in file_list:
-            setter_q.put(f)
-            setter_ql.increment()
-            # with lock_qlen:
-            #     setter_q.put(f)
-            #     sql.value += 1
+            while True:
+                try:
+                    setter_q.put(f, QUEUE_TIMEOUT)
+                    setter_ql.increment()
+                    break
+                except Empty:
+                    time.sleep(QUEUE_WAIT)
+                    pass
 
 
 def get_attr(setter_queue, dirs_processed, files_processed,
              setter_qlength):
     print os.getpid(), "setter()"
     while True:
-        # with lock_q:
-        #     file_info = setter_queue.get(True)
-        #     setter_qlength -= 1
         file_info = setter_queue.get(True)
         setter_qlength.decrement()
         if file_info['type'] == 'FS_FILE_TYPE_DIRECTORY':
             path = file_info['path']
             fs.get_attr(connection, credentials, path=path)
-            # with lock_c:
-            #     dirs_processed.value += 1
             dirs_processed.increment()
         elif file_info['type'] == 'FS_FILE_TYPE_FILE':
             path = file_info['path']
             fs.get_attr(connection, credentials, path=path)
-            # with lock_c:
-            #     files_processed.value += 1
             files_processed.increment()
 
 
@@ -156,15 +151,12 @@ if __name__ == '__main__':
                                        (walker_queue, setter_queue,
                                         walker_qlen, setter_qlen,))
 
-    # Initialize queue with a fileinfo JSON
+    # Initialize walker queue with a path, setter queue with a fileinfo JSON
     walker_queue.put(START_PATH)
     walker_qlen.increment()
 
     root_info, _ = fs.get_attr(connection, credentials, path=START_PATH)
 
-    # with lock_qlen:
-    #     setter_queue.put(root_info)
-    #     setter_qlen.value += 1
     setter_queue.put(root_info)
     setter_qlen.increment()
 
