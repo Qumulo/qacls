@@ -71,16 +71,17 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
     print os.getpid(), "walker()"
 
     while True:
-        while True:
-            try:
-                directory = walker_q.get(True, QUEUE_TIMEOUT)
-                walker_ql.decrement()
-                break
-            except Empty:
-                print os.getpid(), "Timed out waiting on walker queue get"
-                time.sleep(QUEUE_WAIT)
-                pass
-
+        # while True:
+        #     try:
+        #         directory = walker_q.get(True, QUEUE_TIMEOUT)
+        #         walker_ql.decrement()
+        #         break
+        #     except Empty:
+        #         print os.getpid(), "Timed out waiting on walker queue get"
+        #         time.sleep(QUEUE_WAIT)
+        #         pass
+        directory = walker_q.get(True, QUEUE_TIMEOUT)
+        walker_ql.decrement()
         response = fs.read_entire_directory(connection, credentials,
                                             page_size=5000, path=directory)
 
@@ -101,16 +102,9 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
             walker_ql.increment()
 
         for f in file_list:
-            while True:
-                try:
-                    print os.getpid(), "Putting %s on setter queue" % f['path']
-                    setter_q.put(f, QUEUE_TIMEOUT)
-                    setter_ql.increment()
-                    break
-                except Empty:
-                    print os.getpid(), "Timed out waiting on setter queue put"
-                    time.sleep(QUEUE_WAIT)
-                    pass
+            print os.getpid(), "Putting %s on setter queue" % f['path']
+            setter_q.put(f, QUEUE_TIMEOUT)
+            setter_ql.increment()
 
 
 def get_attr(setter_queue, dirs_processed, files_processed,
@@ -119,7 +113,7 @@ def get_attr(setter_queue, dirs_processed, files_processed,
     while True:
         file_info = setter_queue.get(True)
         setter_qlength.decrement()
-        
+
         if file_info['type'] == 'FS_FILE_TYPE_DIRECTORY':
             path = file_info['path']
             fs.get_attr(connection, credentials, path=path)
