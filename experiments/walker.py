@@ -88,10 +88,10 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
         file_list = []
 
         for r in response:
-            dir_list = [i for i in r.data['files']
-                        if i['type'] == 'FS_FILE_TYPE_DIRECTORY']
-            file_list = [i for i in r.data['files']
-                         if i['type'] == 'FS_FILE_TYPE_FILE']
+            dir_list = (i for i in r.data['files']
+                        if i['type'] == 'FS_FILE_TYPE_DIRECTORY')
+            file_list = (i for i in r.data['files']
+                         if i['type'] == 'FS_FILE_TYPE_FILE')
 
         for d in dir_list:
             print os.getpid(), "Putting %s on walker queue" % d['path']
@@ -119,6 +119,7 @@ def get_attr(setter_queue, dirs_processed, files_processed,
     while True:
         file_info = setter_queue.get(True)
         setter_qlength.decrement()
+        
         if file_info['type'] == 'FS_FILE_TYPE_DIRECTORY':
             path = file_info['path']
             fs.get_attr(connection, credentials, path=path)
