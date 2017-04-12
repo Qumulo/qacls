@@ -177,7 +177,7 @@ if __name__ == '__main__':
         dp = dirs_processed.value()
         dps = (dp - last_directories_processed) / POLLING_INTERVAL
         last_directories_processed = dp
-        print "f:%i/%i d:%i/%i fps:%i dps:%i wql:%i sql:%i" % (files_processed.value(),
+        print "*** f:%i/%i d:%i/%i fps:%i dps:%i wql:%i sql:%i" % (files_processed.value(),
                                                   file_count,
                                                   dirs_processed.value(),
                                                   dir_count,
