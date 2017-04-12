@@ -92,6 +92,7 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
                          if i['type'] == 'FS_FILE_TYPE_FILE']
 
         for d in dir_list:
+            print os.getpid(), "Putting %s on walker queue" % d['path']
             setter_q.put(d)
             setter_ql.increment()
             walker_q.put(d['path'])
