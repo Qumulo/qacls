@@ -1,30 +1,44 @@
 import multiprocessing
-from Queue import Empty
 import os, sys
 import time
+import pickle
 
 import qumulo.lib
 import qumulo.lib.auth
 import qumulo.rest
 import qumulo.rest.fs as fs
 
-from walker_config import START_PATH, NUM_WALKERS, NUM_SETTERS, API, POLLING_INTERVAL, QUEUE_TIMEOUT, QUEUE_WAIT
+import redis
 
-# START_PATH = '/'
-# NUM_WALKERS = 1
-# NUM_SETTERS = 10
-# API = {
-#     'host': '192.168.11.147',
-#     'port': '8000',
-#     'user': 'admin',
-#     'pass': 'a'
-# }
-# POLLING_INTERVAL = 2
-# QUEUE_TIMEOUT = 2
-# QUEUE_WAIT = 2
-#
-# connection = None
-# credentials = None
+from walker_config import START_PATH, NUM_WALKERS, NUM_SETTERS, API, POLLING_INTERVAL
+
+
+r = redis.Redis()
+
+
+class RedisQueue(object):
+    def __init__(self):
+        local_id = r.incr('queue_space')
+        id_name = "queue:%s" %(local_id)
+        self.id_name = id_name
+
+    def push(self, element):
+        id_name = self.id_name
+        push_element = r.lpush(id_name, element)
+        return push_element
+
+    put = push
+
+    def pop(self):
+        id_name = self.id_name
+        popped_element = r.rpop(id_name)
+        return popped_element[1]
+
+    def bpop(self):
+        popped_element = r.brpop(self.id_name)
+        return popped_element[1]  # brpop returns a two-tuple with (q_id, elem)
+
+    get = bpop
 
 
 class Counter(object):
@@ -71,16 +85,8 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
     print os.getpid(), "walker()"
 
     while True:
-        # while True:
-        #     try:
-        #         directory = walker_q.get(True, QUEUE_TIMEOUT)
-        #         walker_ql.decrement()
-        #         break
-        #     except Empty:
-        #         print os.getpid(), "Timed out waiting on walker queue get"
-        #         time.sleep(QUEUE_WAIT)
-        #         pass
-        directory = walker_q.get(True, QUEUE_TIMEOUT)
+        directory = walker_q.get()
+        # print os.getpid(), "walker got", directory
         walker_ql.decrement()
         response = fs.read_entire_directory(connection, credentials,
                                             page_size=5000, path=directory)
@@ -95,15 +101,15 @@ def walker_main(walker_q, setter_q, walker_ql, setter_ql):
                          if i['type'] == 'FS_FILE_TYPE_FILE')
 
         for d in dir_list:
-            print os.getpid(), "Putting %s on walker queue" % d['path']
-            setter_q.put(d)
+            # print os.getpid(), "Putting %s on walker queue" % d['path']
+            setter_q.put(pickle.dumps(d))
             setter_ql.increment()
             walker_q.put(d['path'])
             walker_ql.increment()
 
         for f in file_list:
-            print os.getpid(), "Putting %s on setter queue" % f['path']
-            setter_q.put(f, QUEUE_TIMEOUT)
+            # print os.getpid(), "Putting %s on setter queue" % f['path']
+            setter_q.put(pickle.dumps(f))
             setter_ql.increment()
 
 
@@ -111,7 +117,8 @@ def get_attr(setter_queue, dirs_processed, files_processed,
              setter_qlength):
     print os.getpid(), "setter()"
     while True:
-        file_info = setter_queue.get(True)
+        file_info = pickle.loads(setter_queue.get())  # redis supplies text only
+        # print os.getpid(), "setter got", file_info
         setter_qlength.decrement()
 
         if file_info['type'] == 'FS_FILE_TYPE_DIRECTORY':
@@ -142,8 +149,8 @@ if __name__ == '__main__':
     setter_qlen = Counter()
 
     # Set up queues and worker pools
-    setter_queue = multiprocessing.Queue()
-    walker_queue = multiprocessing.Queue()
+    setter_queue = RedisQueue()
+    walker_queue = RedisQueue()
     setter_pool = multiprocessing.Pool(NUM_SETTERS, get_attr,
                                        (setter_queue,
                                         dirs_processed, files_processed,
@@ -158,7 +165,7 @@ if __name__ == '__main__':
 
     root_info, _ = fs.get_attr(connection, credentials, path=START_PATH)
 
-    setter_queue.put(root_info)
+    setter_queue.put(pickle.dumps(root_info))
     setter_qlen.increment()
 
     # performance counters
