@@ -76,11 +76,15 @@ def validate_args(parser_namespace):
     global qacls_config
     qacls_config = imp.load_source('qacls_config', parser_namespace.qacls_config)
 
-    # Set defaults based on the imported config
-    parser_namespace.host = qacls_config.API['host']
-    parser_namespace.port = qacls_config.API['port']
-    parser_namespace.user = qacls_config.API['user']
-    parser_namespace.passwd = qacls_config.API['pass']
+    # Set defaults based on the imported config if they haven't been set already
+    if not parser_namespace.host:
+        parser_namespace.host = qacls_config.API['host']
+    if not parser_namespace.port:
+        parser_namespace.port = qacls_config.API['port']
+    if not parser_namespace.user:
+        parser_namespace.user = qacls_config.API['user']
+    if not parser_namespace.passwd:
+        parser_namespace.passwd = qacls_config.API['pass']
 
 
 def main(argv):
