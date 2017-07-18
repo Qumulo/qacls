@@ -34,7 +34,8 @@ def create_parsers():
                         action='store_true')
     parser.add_argument('--ip', '--host',
                         # default=qacls_config.API['host'],
-                        dest='host', required=False,
+                        dest='host',
+                        required=False,
                         help='specify target cluster address')
     parser.add_argument('-P', '--port', type=int, dest='port',
                         # default=qacls_config.API['port'],
@@ -42,11 +43,13 @@ def create_parsers():
                         help='specify port on target cluster')
     parser.add_argument('-u', '--user',
                         # default=qacls_config.API['user'],
-                        dest='user', required=False,
+                        dest='user',
+                        required=False,
                         help='specify user credentials for API login')
     parser.add_argument('--pass',
                         # default=qacls_config.API['pass'],
-                        dest='passwd', required=False,
+                        dest='passwd',
+                        required=False,
                         help='specify user pwd for API login')
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
@@ -62,7 +65,8 @@ def validate_args(parser_namespace):
     if parser_namespace.subparser_name == 'create':
         from sys import platform
         if platform != 'win32':
-            print "Sorry, qacls.py is currently win32 only. Exiting..."
+            print "Sorry, 'qacls.py create' is currently win32 only. Please " \
+                  "use 'qacls.py push' or 'qacls.py repair' instead."
             sys.exit(1)
         # if we made it here, we're win32 so import more pyad stuff
         import pyad.adquery
