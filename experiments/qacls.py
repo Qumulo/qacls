@@ -19,7 +19,7 @@ for modname in SUBMODULES:
     globals()[modname] = mod
 
 
-qacls_config = None
+# qacls_config = None
 
 
 def create_parsers():
@@ -27,13 +27,30 @@ def create_parsers():
     parser = argparse.ArgumentParser(prog='qacls')
     parser.add_argument('-c', '--config_filename',
                         help='name of config file',
-                        nargs='?',
+                        # nargs='?',
+                        required=False,
                         default="qacls_config.py",
                         action='store',
                         dest='qacls_config')
     parser.add_argument("-v", "--verbose",
                         help="increase verbosity of output",
                         action="store_true")
+    parser.add_argument("--ip", "--host",
+                        # default=qacls_config.API['host'],
+                        dest="host", required=False,
+                        help="specify target cluster address")
+    parser.add_argument("-P", "--port", type=int, dest="port",
+                        # default=qacls_config.API['port'],
+                        required=False,
+                        help="specify port on target cluster")
+    parser.add_argument("-u", "--user",
+                        # default=qacls_config.API['user'],
+                        dest="user", required=False,
+                        help="specify user credentials for API login")
+    parser.add_argument("--pass",
+                        # default=qacls_config.API['pass'],
+                        dest="passwd", required=False,
+                        help="specify user pwd for API login")
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
 
@@ -54,6 +71,16 @@ def validate_args(parser_namespace):
         import pyad.adquery
         from pyad import aduser
         from pyad import adgroup
+
+    # Try to import the specified or default config
+    global qacls_config
+    qacls_config = imp.load_source('qacls_config', parser_namespace.qacls_config)
+
+    # Set defaults based on the imported config
+    parser_namespace.host = qacls_config.API['host']
+    parser_namespace.port = qacls_config.API['port']
+    parser_namespace.user = qacls_config.API['user']
+    parser_namespace.passwd = qacls_config.API['pass']
 
 
 def main(argv):
