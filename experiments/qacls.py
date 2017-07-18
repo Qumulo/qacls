@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""qacls can be called with the following subcommands:
+create (same as old qacls functionality)
+push (push POSIX modes or a defined ACL down a tree)
+repair (read top-level POSIX mode or ACL and push it down a tree)
+"""
 
 import sys
 import argparse
@@ -12,16 +17,6 @@ SUBMODULES = ['qacls_create',
 for modname in SUBMODULES:
     mod = imp.load_source(modname, modname + '.py')
     globals()[modname] = mod
-
-# import qacls_create
-# import qacls_push
-# import qacls_repair
-
-"""qacls can be called with the following subcommands:
-create (same as old qacls functionality)
-push (push POSIX modes or a defined ACL down a tree)
-repair (read top-level POSIX mode or ACL and push it down a tree)
-"""
 
 
 qacls_config = None
@@ -49,6 +44,7 @@ def create_parsers():
 
 
 def validate_args(parser_namespace):
+    # Bail if we're trying to create a skeleton on anything but win32
     if parser_namespace.subparser_name == 'create':
         from sys import platform
         if platform != 'win32':
@@ -61,7 +57,6 @@ def validate_args(parser_namespace):
 
 
 def main(argv):
-    # print globals()
     parser = create_parsers()
     parsed = parser.parse_args(argv)
     validate_args(parsed)
