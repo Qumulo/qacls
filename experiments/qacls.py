@@ -19,9 +19,6 @@ for modname in SUBMODULES:
     globals()[modname] = mod
 
 
-# qacls_config = None
-
-
 def create_parsers():
     # Top-level parser stuff
     parser = argparse.ArgumentParser(prog='qacls')
@@ -29,28 +26,28 @@ def create_parsers():
                         help='name of config file',
                         # nargs='?',
                         required=False,
-                        default="qacls_config.py",
+                        default='qacls_config.py',
                         action='store',
                         dest='qacls_config')
-    parser.add_argument("-v", "--verbose",
-                        help="increase verbosity of output",
-                        action="store_true")
-    parser.add_argument("--ip", "--host",
+    parser.add_argument('-v', '--verbose',
+                        help='increase verbosity of output',
+                        action='store_true')
+    parser.add_argument('--ip', '--host',
                         # default=qacls_config.API['host'],
-                        dest="host", required=False,
-                        help="specify target cluster address")
-    parser.add_argument("-P", "--port", type=int, dest="port",
+                        dest='host', required=False,
+                        help='specify target cluster address')
+    parser.add_argument('-P', '--port', type=int, dest='port',
                         # default=qacls_config.API['port'],
                         required=False,
-                        help="specify port on target cluster")
-    parser.add_argument("-u", "--user",
+                        help='specify port on target cluster')
+    parser.add_argument('-u', '--user',
                         # default=qacls_config.API['user'],
-                        dest="user", required=False,
-                        help="specify user credentials for API login")
-    parser.add_argument("--pass",
+                        dest='user', required=False,
+                        help='specify user credentials for API login')
+    parser.add_argument('--pass',
                         # default=qacls_config.API['pass'],
-                        dest="passwd", required=False,
-                        help="specify user pwd for API login")
+                        dest='passwd', required=False,
+                        help='specify user pwd for API login')
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
 
