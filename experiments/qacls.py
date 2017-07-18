@@ -12,6 +12,7 @@ import imp
 SUBMODULES = ['qacls_create',
               'qacls_push',
               'qacls_repair',
+              'qacls_test'
               ]
 
 for modname in SUBMODULES:
@@ -54,6 +55,7 @@ def create_parsers():
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
 
+    # so all the submodules are named correctly in this namespace
     for m in SUBMODULES:
         getattr(globals()[m], 'create_subparser')(subparsers)
 
@@ -88,13 +90,21 @@ def validate_args(parser_namespace):
         parser_namespace.passwd = qacls_config.API['pass']
 
 
+def run_it(parsed):
+    validate_args(parsed)
+    if parsed.verbose:
+        print parsed
+        print globals()
+    cmd_name = 'qacls_' + parsed.subparser_name
+    cmd = globals()[cmd_name]
+    cmd.main(parsed)
+
+
 def main(argv):
     parser = create_parsers()
     parsed = parser.parse_args(argv)
-    validate_args(parsed)
-    print parsed
+    run_it(parsed)
 
 
 if __name__ == '__main__':
-    print sys.argv
     main(sys.argv[1:])

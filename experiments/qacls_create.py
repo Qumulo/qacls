@@ -16,3 +16,11 @@ def create_subparser(subparsers):
                                action='store',
                                default='/')
 
+
+def main(parsed):
+    print "qacls_create.py"
+    if parsed.verbose:
+        print parsed
+
+if __name__ == '__main__':
+    print "Don't invoke this directly, use qacls.py create instead"

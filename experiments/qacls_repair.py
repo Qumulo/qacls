@@ -18,3 +18,11 @@ def create_subparser(subparsers):
                                help='Directory to start the permissions repair. '
                                     'This directory\'s contents will get an '
                                     'inherited version of the ACL or owner/modes.')
+
+def main(parsed):
+    print "qacls_repair.py"
+    if parsed.verbose:
+        print parsed
+
+if __name__ == '__main__':
+    print "Don't invoke this directly, use qacls.py create instead"

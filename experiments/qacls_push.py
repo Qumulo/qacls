@@ -12,19 +12,14 @@ def create_subparser(subparsers):
                                         help='push the requested ')
     parser_push.add_argument('start_path',
                              action='store',
-                             help='Directory to start the permissions repair. '
-                                  'This directory\'s contents will get an '
-                                  'inherited version of the ACL or owner/modes.')
+                             help='Directory to start perms push. This '
+                                  'directory will get an uninherited version '
+                                  'of the specified ACL or owner/modes.')
     parser_push.add_argument('-a', '--ace',
                              action='append',
                              help='ACE name for the ACL to push, defined in '
                              'config. Can add multiples by specifying -a '
                              'multiple times.')
-    parser_push.add_argument('start_path', 
-                             action='store',
-                             help='Directory to start perms push. This '
-                                  'directory will get an uninherited version '
-                                  'of the specified ACL.')
     parser_push.add_argument('-U', '--uid',
                              dest='uid',
                              required=False,
@@ -38,3 +33,12 @@ def create_subparser(subparsers):
                              required=False,
                              help='specify mode bits (octal) to be included in '
                                   'the push.')
+
+
+def main(parsed):
+    print "qacls_push.py"
+    if parsed.verbose:
+        print parsed
+
+if __name__ == '__main__':
+    print "Don't invoke this directly, use qacls.py create instead"
