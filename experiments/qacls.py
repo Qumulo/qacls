@@ -12,16 +12,16 @@ import imp
 SUBMODULES = ['qacls_create',
               'qacls_push',
               'qacls_repair',
-              'qacls_test'
+              'qacls_test',
               ]
 
+# import everything in SUBMODULES and give it the right name
 for modname in SUBMODULES:
     mod = imp.load_source(modname, modname + '.py')
     globals()[modname] = mod
 
 
 def create_parsers():
-    # Top-level parser stuff
     parser = argparse.ArgumentParser(prog='qacls')
     parser.add_argument('-c', '--config_filename',
                         help='name of config file',
@@ -55,7 +55,7 @@ def create_parsers():
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
 
-    # so all the submodules are named correctly in this namespace
+    # so all the subparsers are named correctly in this namespace
     for m in SUBMODULES:
         getattr(globals()[m], 'create_subparser')(subparsers)
 
@@ -78,6 +78,10 @@ def validate_args(parser_namespace):
     # Try to import the specified or default config
     global qacls_config
     qacls_config = imp.load_source('qacls_config', parser_namespace.qacls_config)
+
+    # Attach the config in all the submodule namespaces
+    for modname in SUBMODULES:
+        globals()[modname].qacls_config = qacls_config
 
     # Set defaults based on the imported config if they haven't been set already
     if not parser_namespace.host:

@@ -11,6 +11,8 @@ API = {
     'pass': 'a'
 }
 
+QSPLIT = '../../qsplit/qsplit.py'
+
 AD_USER_BASE_DN = "CN=users, DC=demo, DC=int"
 AD_GROUP_BASE_DN = "CN=users, DC=demo, DC=int"
 

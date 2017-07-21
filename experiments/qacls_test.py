@@ -1,6 +1,9 @@
 """qacls_test
 test the connection to the API
+test the connection to qsplit
 """
+
+import subprocess
 
 
 def create_subparser(subparsers):
@@ -16,7 +19,7 @@ def create_subparser(subparsers):
                                   'you can login')
     parser_test.add_argument('-s', '--with-qsplit',
                              action='store',
-                             nargs=1,
+                             #nargs=1,
                              dest='with_qsplit',
                              default=0,
                              type=int,
@@ -35,7 +38,18 @@ def main(parsed):
         print parsed
     if parsed.with_qsplit:
         print "Running qsplit"
-
+        print qacls_config.QSPLIT
+        print parsed.with_qsplit
+        cmdlist = [qacls_config.QSPLIT,
+                   '--host', qacls_config.API['host'],
+                   '--port', qacls_config.API['port'],
+                   '--user', qacls_config.API['user'],
+                   '--pass', qacls_config.API['pass'],
+                   '--buckets', str(parsed.with_qsplit),
+                   parsed.start_path,
+                   ]
+        qsplit_exit_status = subprocess.call(cmdlist)
+        print "qsplit exit status " + str(qsplit_exit_status)
 
 if __name__ == '__main__':
-    print "Don't invoke this directly, use qacls.py test instead"
+    print "Don't invoke this directly, use 'qacls.py test' instead"
