@@ -3,11 +3,12 @@ test the connection to the API
 test the connection to qsplit
 """
 
+import os
 import subprocess
 
 
 def create_subparser(subparsers):
-    # Parser for 'qacls test'
+    """Parser for 'qacls test"""
     parser_test = subparsers.add_parser('test',
                                         help='test qumulo_api and qsplit '
                                              'availability, and connection to'
@@ -19,7 +20,6 @@ def create_subparser(subparsers):
                                   'you can login')
     parser_test.add_argument('-s', '--with-qsplit',
                              action='store',
-                             #nargs=1,
                              dest='with_qsplit',
                              default=0,
                              type=int,
@@ -32,12 +32,30 @@ credentials = None
 start_path = None
 
 
+def find_latest(a, b):
+    """take two filenames, return the one that was created most recently"""
+    a_mtime = os.path.getmtime(a)
+    b_mtime = os.path.getmtime(b)
+    return a if a_mtime > b_mtime else b
+
+
+def find_all_buckets(directory):
+    """return a list of qsplit buckets found in the specified directory"""
+    return [f for f in os.listdir(directory)
+            if 'qsync_' in f and
+            'bucket' in f and
+            '.txt' in f
+            ]
+
+
+
 def main(parsed):
     print "qacls_test.py"
     if parsed.verbose:
         print parsed
     if parsed.with_qsplit:
         print "Running qsplit"
+        # qacls_config is added to the namespace by qacls.py
         print qacls_config.QSPLIT
         print parsed.with_qsplit
         cmdlist = [qacls_config.QSPLIT,
@@ -50,6 +68,7 @@ def main(parsed):
                    ]
         qsplit_exit_status = subprocess.call(cmdlist)
         print "qsplit exit status " + str(qsplit_exit_status)
+
 
 if __name__ == '__main__':
     print "Don't invoke this directly, use 'qacls.py test' instead"
