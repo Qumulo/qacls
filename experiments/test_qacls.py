@@ -8,6 +8,28 @@ class Bunch(object):
     def __init__(self, adict):
         self.__dict__.update(adict)
 
+PARSED_NO_QSPLIT = Bunch({'host': '192.168.11.147',
+                              'passwd': 'a',
+                              'port': '8000',
+                              'no_ssl_verify': True,
+                              'qacls_config': 'qacls_config.py',
+                              'start_path': '/',
+                              'subparser_name': 'test',
+                              'user': 'admin',
+                              'verbose': False,
+                              'with_qsplit': 0})
+
+PARSED_WITH_QSPLIT_2 = Bunch({'host': '192.168.11.147',
+                              'passwd': 'a',
+                              'port': '8000',
+                              'no_ssl_verify': True,
+                              'qacls_config': 'qacls_config.py',
+                              'start_path': '/',
+                              'subparser_name': 'test',
+                              'user': 'admin',
+                              'verbose': False,
+                              'with_qsplit': 2})
+
 
 class TestQacls(unittest.TestCase):
     def tearDown(self):
@@ -21,29 +43,13 @@ class TestQacls(unittest.TestCase):
     def test_test_qacls(self):
         """Run qacls without qsplit
         """
-        parsed = Bunch({'host': '192.168.11.147',
-                        'passwd': 'a',
-                        'port': '8000',
-                        'qacls_config': 'qacls_config.py',
-                        'start_path': '/',
-                        'subparser_name': 'test',
-                        'user': 'admin',
-                        'verbose': True,
-                        'with_qsplit': 0})
+        parsed = PARSED_NO_QSPLIT
         qacls.run_it(parsed)
 
     def test_test_qacls_qsplit(self):
         """Run qacls with qsplit
         """
-        parsed = Bunch({'host': '192.168.11.147',
-                        'passwd': 'a',
-                        'port': '8000',
-                        'qacls_config': 'qacls_config.py',
-                        'start_path': '/',
-                        'subparser_name': 'test',
-                        'user': 'admin',
-                        'verbose': False,
-                        'with_qsplit': 2})
+        parsed = PARSED_WITH_QSPLIT_2
         qacls.run_it(parsed)
 
     def test_test_qacls_find_latest_file(self):
@@ -61,15 +67,7 @@ class TestQacls(unittest.TestCase):
     def test_test_qacls_find_all_buckets(self):
         """Run qacls with qsplit, verify we identify buckets properly
         """
-        parsed = Bunch({'host': '192.168.11.147',
-                        'passwd': 'a',
-                        'port': '8000',
-                        'qacls_config': 'qacls_config.py',
-                        'start_path': '/',
-                        'subparser_name': 'test',
-                        'user': 'admin',
-                        'verbose': False,
-                        'with_qsplit': 2})
+        parsed = PARSED_WITH_QSPLIT_2
         qacls.run_it(parsed)
         files = [f for f in os.listdir('.')
                  if 'qsync_' in f and
@@ -84,16 +82,7 @@ class TestQacls(unittest.TestCase):
         """Issue a login call, make sure connection and credentials are
         populated properly"""
 
-        parsed = Bunch({'host': '192.168.11.147',
-                        'passwd': 'a',
-                        'port': '8000',
-                        'no_ssl_verify': True,
-                        'qacls_config': 'qacls_config.py',
-                        'start_path': '/',
-                        'subparser_name': 'test',
-                        'user': 'admin',
-                        'verbose': False,
-                        'with_qsplit': 2})
+        parsed = PARSED_WITH_QSPLIT_2
         self.assertFalse(qacls.qacls_test.connection)
         self.assertFalse(qacls.qacls_test.credentials)
         qacls.validate_args(parsed)
