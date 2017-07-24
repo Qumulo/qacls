@@ -52,6 +52,10 @@ def create_parsers():
                         dest='passwd',
                         required=False,
                         help='specify user pwd for API login')
+    parser.add_argument('--no-ssl-verify',
+                        action='store_true',
+                        required=False,
+                        help='disable strict SSL certificate check')
     subparsers = parser.add_subparsers(help='sub-command help',
                                        dest='subparser_name')
 
@@ -92,6 +96,19 @@ def validate_args(parser_namespace):
         parser_namespace.user = qacls_config.API['user']
     if not parser_namespace.passwd:
         parser_namespace.passwd = qacls_config.API['pass']
+
+    # Disable strict ssl verification if requested
+    if parser_namespace.no_ssl_verify:
+        import ssl
+
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            # Legacy Python that doesn't verify HTTPS certificates by default
+            pass
+        else:
+            # Handle target environment that doesn't support HTTPS verification
+            ssl._create_default_https_context = _create_unverified_https_context
 
 
 def run_it(parsed):

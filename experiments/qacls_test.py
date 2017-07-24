@@ -4,7 +4,12 @@ test the connection to qsplit
 """
 
 import os
+import sys
 import subprocess
+
+import qumulo.lib.auth
+import qumulo.lib.request
+import qumulo.rest
 
 
 def create_subparser(subparsers):
@@ -24,7 +29,7 @@ def create_subparser(subparsers):
                              default=0,
                              type=int,
                              metavar='N',
-                             help='Try using N qsplit buckets instead of ' \
+                             help='Try using N qsplit buckets instead of '
                                   'treewalking ourself.')
 
 connection = None
@@ -33,7 +38,8 @@ start_path = None
 
 
 def find_latest(a, b):
-    """take two filenames, return the one that was created most recently"""
+    """take two (local) filenames, return the one that was created most recently
+    """
     a_mtime = os.path.getmtime(a)
     b_mtime = os.path.getmtime(b)
     return a if a_mtime > b_mtime else b
@@ -47,6 +53,24 @@ def find_all_buckets(directory):
             '.txt' in f
             ]
 
+
+def login(parsed_args):
+    global connection, credentials
+    try:
+        connection = qumulo.lib.request.Connection(parsed_args.host,
+                                                   int(parsed_args.port))
+        # login() returns a two-tuple, the second member of which we don't need
+        login_results, _ = qumulo.rest.auth.login(connection,
+                                                  None,
+                                                  parsed_args.user,
+                                                  parsed_args.passwd)
+
+        credentials = qumulo.lib.auth.Credentials.from_login_response(
+            login_results)
+    except Exception, e:
+        print "Error connecting to the REST server: %s" % e
+        # print __doc__
+        sys.exit(1)
 
 
 def main(parsed):

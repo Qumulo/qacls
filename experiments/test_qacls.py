@@ -19,6 +19,8 @@ class TestQacls(unittest.TestCase):
          ]
 
     def test_test_qacls(self):
+        """Run qacls without qsplit
+        """
         parsed = Bunch({'host': '192.168.11.147',
                         'passwd': 'a',
                         'port': '8000',
@@ -31,6 +33,8 @@ class TestQacls(unittest.TestCase):
         qacls.run_it(parsed)
 
     def test_test_qacls_qsplit(self):
+        """Run qacls with qsplit
+        """
         parsed = Bunch({'host': '192.168.11.147',
                         'passwd': 'a',
                         'port': '8000',
@@ -43,9 +47,11 @@ class TestQacls(unittest.TestCase):
         qacls.run_it(parsed)
 
     def test_test_qacls_find_latest_file(self):
-        Fa = open('a','w')
+        """Create two files, return the name of the file which was created last
+        """
+        Fa = open('a', 'w')
         Fa.close()
-        Fb = open('b','w')
+        Fb = open('b', 'w')
         Fb.close()
         result = qacls.qacls_test.find_latest('a', 'b')
         os.remove('a')
@@ -53,6 +59,8 @@ class TestQacls(unittest.TestCase):
         self.assertEqual(result, 'b')
 
     def test_test_qacls_find_all_buckets(self):
+        """Run qacls with qsplit, verify we identify buckets properly
+        """
         parsed = Bunch({'host': '192.168.11.147',
                         'passwd': 'a',
                         'port': '8000',
@@ -71,3 +79,24 @@ class TestQacls(unittest.TestCase):
         print files
         files_from_qacls = qacls.qacls_test.find_all_buckets('.')
         self.assertEqual(files, files_from_qacls)
+
+    def test_test_qacls_login(self):
+        """Issue a login call, make sure connection and credentials are
+        populated properly"""
+
+        parsed = Bunch({'host': '192.168.11.147',
+                        'passwd': 'a',
+                        'port': '8000',
+                        'no_ssl_verify': True,
+                        'qacls_config': 'qacls_config.py',
+                        'start_path': '/',
+                        'subparser_name': 'test',
+                        'user': 'admin',
+                        'verbose': False,
+                        'with_qsplit': 2})
+        self.assertFalse(qacls.qacls_test.connection)
+        self.assertFalse(qacls.qacls_test.credentials)
+        qacls.validate_args(parsed)
+        qacls.qacls_test.login(parsed)
+        self.assertTrue(qacls.qacls_test.connection)
+        self.assertTrue(qacls.qacls_test.credentials)
