@@ -81,7 +81,6 @@ class TestQacls(unittest.TestCase):
     def test_test_qacls_login(self):
         """Issue a login call, make sure connection and credentials are
         populated properly"""
-
         parsed = PARSED_WITH_QSPLIT_2
         self.assertFalse(qacls.qacls_test.connection)
         self.assertFalse(qacls.qacls_test.credentials)
@@ -89,3 +88,24 @@ class TestQacls(unittest.TestCase):
         qacls.qacls_test.login(parsed)
         self.assertTrue(qacls.qacls_test.connection)
         self.assertTrue(qacls.qacls_test.credentials)
+
+    def test_test_qacls_process_item(self):
+        """Try out process item on a file and a directory
+        """
+        parsed = PARSED_WITH_QSPLIT_2
+        qacls.validate_args(parsed)
+        qacls.qacls_test.login(parsed)
+        result = qacls.qacls_test.process_item('/')
+        print result
+        self.assertTrue('DIRECTORY' in result)
+
+    def test_test_qacls_process_bucket(self):
+        """Eat a bucket file and process all the items in it
+        """
+        parsed = PARSED_WITH_QSPLIT_2
+        qacls.run_it(parsed)
+        buckets = qacls.qacls_test.find_all_buckets('.')
+        result = qacls.qacls_test.process_bucket(buckets[1])
+        print '\n'.join(result)
+        self.assertTrue('DIRECTORY' in result)
+        self.assertTrue('FILE' in result)

@@ -10,6 +10,7 @@ import subprocess
 import qumulo.lib.auth
 import qumulo.lib.request
 import qumulo.rest
+import qumulo.rest.fs as fs
 
 
 def create_subparser(subparsers):
@@ -54,6 +55,30 @@ def find_all_buckets(directory):
             ]
 
 
+def process_item(item):
+    """Tell me whether item is a directory or a file
+    this is the integration point for qacls subcommands to do their thing
+    """
+    # print item
+    result, _ = fs.get_attr(connection, credentials, path=item)
+    # print result
+    if result['type'] == 'FS_FILE_TYPE_DIRECTORY':
+        return "%s is a DIRECTORY" % item
+    elif result['type'] == 'FS_FILE_TYPE_FILE':
+        return "%s is a FILE" % item
+    else:
+        return "%s is unknown" % item
+
+
+def process_bucket(bucket_name):
+    output = []
+    print bucket_name
+    for line in open(bucket_name):
+        processed_line = '/' + line.rstrip()
+        output.append(process_item(processed_line))
+    return output
+
+
 def login(parsed_args):
     global connection, credentials
     try:
@@ -74,14 +99,17 @@ def login(parsed_args):
 
 
 def main(parsed):
-    print "qacls_test.py"
+    login(parsed)
+    if parsed.verbose:
+        print "qacls_test.py login to API successful"
     if parsed.verbose:
         print parsed
     if parsed.with_qsplit:
         print "Running qsplit"
         # qacls_config is added to the namespace by qacls.py
-        print qacls_config.QSPLIT
-        print parsed.with_qsplit
+        if parsed.verbose:
+            print qacls_config.QSPLIT
+            print parsed.with_qsplit
         cmdlist = [qacls_config.QSPLIT,
                    '--host', qacls_config.API['host'],
                    '--port', qacls_config.API['port'],
