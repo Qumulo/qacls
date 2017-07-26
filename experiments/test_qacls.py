@@ -1,5 +1,6 @@
 import unittest
 import os
+import time
 
 import qacls
 
@@ -106,6 +107,33 @@ class TestQacls(unittest.TestCase):
         qacls.run_it(parsed)
         buckets = qacls.qacls_test.find_all_buckets('.')
         result = qacls.qacls_test.process_bucket(buckets[1])
-        print '\n'.join(result)
-        self.assertTrue('DIRECTORY' in result)
-        self.assertTrue('FILE' in result)
+        print result
+        string_result = '\n'.join(result)
+        self.assertTrue('DIR' in string_result)
+        self.assertTrue('FIL' in string_result)
+
+    def test_test_qacls_process_root(self):
+        """Try processing from root without a bucket
+        """
+        parsed = PARSED_NO_QSPLIT
+        qacls.run_it(parsed)
+        result = qacls.qacls_test.process_item('/')
+        print result
+        string_result = '\n'.join(result)
+        print string_result
+        self.assertTrue('DIR' in string_result)
+        self.assertTrue('FIL' in string_result)
+
+    def test_test_qacls_find_latest_buckets(self):
+        parsed = PARSED_WITH_QSPLIT_2
+        qacls.run_it(parsed)
+        bucket_names_before = qacls.qacls_test.find_latest_buckets('.')
+        print bucket_names_before
+        # make sure we aren't overwriting buckets since timestamp is in minutes
+        time.sleep(60)
+        qacls.run_it(parsed)
+        # this should return a list of the names of the latest generated buckets
+        bucket_names_after = qacls.qacls_test.find_latest_buckets('.')
+        print bucket_names_after
+        self.assertTrue('qsync_' in bucket_names_after[0])
+        self.assertNotEqual(bucket_names_before, bucket_names_after)

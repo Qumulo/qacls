@@ -6,6 +6,7 @@ test the connection to qsplit
 import os
 import sys
 import subprocess
+import re
 
 import qumulo.lib.auth
 import qumulo.lib.request
@@ -55,6 +56,20 @@ def find_all_buckets(directory):
             ]
 
 
+def find_latest_buckets(directory):
+    latest = None
+    for f in find_all_buckets(directory):
+        if not latest:
+            latest = f
+        else:
+            latest = find_latest(latest, f)
+    print latest
+    # find all the latest bucket file names
+    m = re.match(r'qsync_(\d+)_bucket(\d+).txt', latest)
+    time_stamp = m.group(1)
+    return [f for f in find_all_buckets(directory) if time_stamp in f]
+
+
 def process_item(item):
     """Tell me whether item is a directory or a file
     this is the integration point for qacls subcommands to do their thing
@@ -63,11 +78,39 @@ def process_item(item):
     result, _ = fs.get_attr(connection, credentials, path=item)
     # print result
     if result['type'] == 'FS_FILE_TYPE_DIRECTORY':
-        return "%s is a DIRECTORY" % item
+        return process_directory(item)
     elif result['type'] == 'FS_FILE_TYPE_FILE':
-        return "%s is a FILE" % item
+        return process_file(item)
     else:
-        return "%s is unknown" % item
+        return process_unknown(item)
+
+
+def process_directory(item):
+    """return a list of responses walking the directory and processing dirs and
+    files found
+    """
+    result_list = []
+    result_list.append('DIR\t%s' % item)
+    for new_item in fs.read_entire_directory(connection,
+                                             credentials,
+                                             path=item):
+        directory_list = new_item[0]['files']
+        # print directory_list
+        for f in directory_list:
+            # print file['path']
+            result_list.extend(process_item(f['path']))
+    return result_list
+
+
+def process_file(item):
+    """return list containing file status - do whatever you need to to a file in
+    this function
+    """
+    return ["FIL\t%s" % item]
+
+
+def process_unknown(item):
+    return ["UNK\t%s" % item]
 
 
 def process_bucket(bucket_name):
@@ -75,7 +118,7 @@ def process_bucket(bucket_name):
     print bucket_name
     for line in open(bucket_name):
         processed_line = '/' + line.rstrip()
-        output.append(process_item(processed_line))
+        output.extend(process_item(processed_line))
     return output
 
 
