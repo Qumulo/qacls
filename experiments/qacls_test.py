@@ -71,12 +71,13 @@ def find_latest_buckets(directory):
 
 
 def process_item(item):
-    """Tell me whether item is a directory or a file
-    this is the integration point for qacls subcommands to do their thing
+    """Determine whether item is a directory or a file and hand it to the
+    correct function.
+    this is the integration point for qacls subcommands to do their thing and
+    should not normally need to be modified.
     """
-    # print item
+    # TODO: we are currently issuing two metadata requests with directories, could reduce to one
     result, _ = fs.get_attr(connection, credentials, path=item)
-    # print result
     if result['type'] == 'FS_FILE_TYPE_DIRECTORY':
         return process_directory(item)
     elif result['type'] == 'FS_FILE_TYPE_FILE':
@@ -87,10 +88,10 @@ def process_item(item):
 
 def process_directory(item):
     """return a list of responses walking the directory and processing dirs and
-    files found
+    files found -- handle directories in this function
     """
-    result_list = []
-    result_list.append('DIR\t%s' % item)
+    result_list = ['DIR\t%s' % item]
+    # result_list.append('DIR\t%s' % item)
     for new_item in fs.read_entire_directory(connection,
                                              credentials,
                                              path=item):
@@ -110,10 +111,14 @@ def process_file(item):
 
 
 def process_unknown(item):
+    """Anything that isn't a directory or a file ends up here. We can increase
+    the file types we support by enhancing process_item() and adding functions
+    """
     return ["UNK\t%s" % item]
 
 
 def process_bucket(bucket_name):
+    """Open a bucket file, iterate through each entry and process everything"""
     output = []
     print bucket_name
     for line in open(bucket_name):
@@ -145,7 +150,6 @@ def main(parsed):
     login(parsed)
     if parsed.verbose:
         print "qacls_test.py login to API successful"
-    if parsed.verbose:
         print parsed
     if parsed.with_qsplit:
         print "Running qsplit"
@@ -162,7 +166,11 @@ def main(parsed):
                    parsed.start_path,
                    ]
         qsplit_exit_status = subprocess.call(cmdlist)
-        print "qsplit exit status " + str(qsplit_exit_status)
+        if parsed.verbose:
+            print "qsplit exit status " + str(qsplit_exit_status)
+
+    else:
+        print "Running qacls test"
 
 
 if __name__ == '__main__':

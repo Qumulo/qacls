@@ -83,8 +83,6 @@ class TestQacls(unittest.TestCase):
         """Issue a login call, make sure connection and credentials are
         populated properly"""
         parsed = PARSED_WITH_QSPLIT_2
-        self.assertFalse(qacls.qacls_test.connection)
-        self.assertFalse(qacls.qacls_test.credentials)
         qacls.validate_args(parsed)
         qacls.qacls_test.login(parsed)
         self.assertTrue(qacls.qacls_test.connection)
@@ -98,7 +96,8 @@ class TestQacls(unittest.TestCase):
         qacls.qacls_test.login(parsed)
         result = qacls.qacls_test.process_item('/')
         print result
-        self.assertTrue('DIRECTORY' in result)
+        string_result = '\n'.join(result)
+        self.assertTrue('DIR' in string_result)
 
     def test_test_qacls_process_bucket(self):
         """Eat a bucket file and process all the items in it
