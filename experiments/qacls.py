@@ -110,6 +110,10 @@ def validate_args(parser_namespace):
             # Handle target environment that doesn't support HTTPS verification
             ssl._create_default_https_context = _create_unverified_https_context
 
+    # set default encoding to utf8 instead of ascii
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+
 
 def run_it(parsed):
     validate_args(parsed)

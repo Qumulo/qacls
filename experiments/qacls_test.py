@@ -8,6 +8,8 @@ import sys
 import subprocess
 import re
 
+from multiprocessing import Pool
+
 import qumulo.lib.auth
 import qumulo.lib.request
 import qumulo.rest
@@ -63,7 +65,7 @@ def find_latest_buckets(directory):
             latest = f
         else:
             latest = find_latest(latest, f)
-    print latest
+    # print latest
     # find all the latest bucket file names
     m = re.match(r'qsync_(\d+)_bucket(\d+).txt', latest)
     time_stamp = m.group(1)
@@ -120,7 +122,7 @@ def process_unknown(item):
 def process_bucket(bucket_name):
     """Open a bucket file, iterate through each entry and process everything"""
     output = []
-    print bucket_name
+    # print bucket_name
     for line in open(bucket_name):
         processed_line = '/' + line.rstrip()
         output.extend(process_item(processed_line))
@@ -152,6 +154,8 @@ def main(parsed):
         print "qacls_test.py login to API successful"
         print parsed
     if parsed.with_qsplit:
+        print "Starting process pool"
+        P = Pool(parsed.with_qsplit)
         print "Running qsplit"
         # qacls_config is added to the namespace by qacls.py
         if parsed.verbose:
@@ -168,9 +172,13 @@ def main(parsed):
         qsplit_exit_status = subprocess.call(cmdlist)
         if parsed.verbose:
             print "qsplit exit status " + str(qsplit_exit_status)
+        results = P.map(process_bucket, find_latest_buckets('.'))
+        for r in results:
+            print '\n'.join(r)
 
     else:
         print "Running qacls test"
+        print '\n'.join(process_item(parsed.start_path))
 
 
 if __name__ == '__main__':
