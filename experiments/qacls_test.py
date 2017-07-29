@@ -148,6 +148,18 @@ def login(parsed_args):
         sys.exit(1)
 
 
+def run_qsplit(parsed):
+    cmdlist = [qacls_config.QSPLIT,
+               '--host', qacls_config.API['host'],
+               '--port', qacls_config.API['port'],
+               '--user', qacls_config.API['user'],
+               '--pass', qacls_config.API['pass'],
+               '--buckets', str(parsed.with_qsplit),
+               parsed.start_path,
+               ]
+    return subprocess.call(cmdlist)
+
+
 def main(parsed):
     login(parsed)
     if parsed.verbose:
@@ -161,15 +173,7 @@ def main(parsed):
         if parsed.verbose:
             print qacls_config.QSPLIT
             print parsed.with_qsplit
-        cmdlist = [qacls_config.QSPLIT,
-                   '--host', qacls_config.API['host'],
-                   '--port', qacls_config.API['port'],
-                   '--user', qacls_config.API['user'],
-                   '--pass', qacls_config.API['pass'],
-                   '--buckets', str(parsed.with_qsplit),
-                   parsed.start_path,
-                   ]
-        qsplit_exit_status = subprocess.call(cmdlist)
+        qsplit_exit_status = run_qsplit(parsed)
         if parsed.verbose:
             print "qsplit exit status " + str(qsplit_exit_status)
         results = P.map(process_bucket, find_latest_buckets('.'))

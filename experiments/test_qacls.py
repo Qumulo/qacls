@@ -41,18 +41,6 @@ class TestQacls(unittest.TestCase):
          '.txt' in f
          ]
 
-    def test_test_qacls(self):
-        """Run qacls without qsplit
-        """
-        parsed = PARSED_NO_QSPLIT
-        qacls.run_it(parsed)
-
-    def test_test_qacls_qsplit(self):
-        """Run qacls with qsplit
-        """
-        parsed = PARSED_WITH_QSPLIT_2
-        qacls.run_it(parsed)
-
     def test_test_qacls_find_latest_file(self):
         """Create two files, return the name of the file which was created last
         """
@@ -69,7 +57,9 @@ class TestQacls(unittest.TestCase):
         """Run qacls with qsplit, verify we identify buckets properly
         """
         parsed = PARSED_WITH_QSPLIT_2
-        qacls.run_it(parsed)
+        qacls.validate_args(parsed)
+        qacls.qacls_test.login(parsed)
+        qacls.qacls_test.run_qsplit(parsed)
         files = [f for f in os.listdir('.')
                  if 'qsync_' in f and
                  'bucket' in f and
@@ -103,7 +93,9 @@ class TestQacls(unittest.TestCase):
         """Eat a bucket file and process all the items in it
         """
         parsed = PARSED_WITH_QSPLIT_2
-        qacls.run_it(parsed)
+        qacls.validate_args(parsed)
+        qacls.qacls_test.login(parsed)
+        qacls.qacls_test.run_qsplit(parsed)
         buckets = qacls.qacls_test.find_all_buckets('.')
         result = qacls.qacls_test.process_bucket(buckets[1])
         print result
@@ -115,7 +107,8 @@ class TestQacls(unittest.TestCase):
         """Try processing from root without a bucket
         """
         parsed = PARSED_NO_QSPLIT
-        qacls.run_it(parsed)
+        qacls.validate_args(parsed)
+        qacls.qacls_test.login(parsed)
         result = qacls.qacls_test.process_item('/')
         print result
         string_result = '\n'.join(result)
@@ -125,12 +118,13 @@ class TestQacls(unittest.TestCase):
 
     def test_test_qacls_find_latest_buckets(self):
         parsed = PARSED_WITH_QSPLIT_2
-        qacls.run_it(parsed)
+        qacls.validate_args(parsed)
+        qacls.qacls_test.run_qsplit(parsed)
         bucket_names_before = qacls.qacls_test.find_latest_buckets('.')
         print bucket_names_before
         # make sure we aren't overwriting buckets since timestamp is in minutes
         time.sleep(60)
-        qacls.run_it(parsed)
+        qacls.qacls_test.run_qsplit(parsed)
         # this should return a list of the names of the latest generated buckets
         bucket_names_after = qacls.qacls_test.find_latest_buckets('.')
         print bucket_names_after
