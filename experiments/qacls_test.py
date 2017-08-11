@@ -6,7 +6,7 @@ test the connection to qsplit
 import os
 import sys
 import subprocess
-import re
+import posixpath
 
 from multiprocessing import Pool
 
@@ -52,24 +52,10 @@ def find_latest(a, b):
 def find_all_buckets(directory):
     """return a list of qsplit buckets found in the specified directory"""
     return [f for f in os.listdir(directory)
-            if 'qsync_' in f and
-            'bucket' in f and
+            if 'split_' in f and
+            'bucket_' in f and
             '.txt' in f
             ]
-
-
-def find_latest_buckets(directory):
-    latest = None
-    for f in find_all_buckets(directory):
-        if not latest:
-            latest = f
-        else:
-            latest = find_latest(latest, f)
-    # print latest
-    # find all the latest bucket file names
-    m = re.match(r'qsync_(\d+)_bucket(\d+).txt', latest)
-    time_stamp = m.group(1)
-    return [f for f in find_all_buckets(directory) if time_stamp in f]
 
 
 def process_item(item):
@@ -119,12 +105,13 @@ def process_unknown(item):
     return ["UNK\t%s" % item]
 
 
-def process_bucket(bucket_name):
+def process_bucket(bucket_name, start_dir='/'):
     """Open a bucket file, iterate through each entry and process everything"""
     output = []
     # print bucket_name
     for line in open(bucket_name):
-        processed_line = '/' + line.rstrip()
+        processed_line = posixpath.join(start_dir, line.rstrip())
+        print processed_line
         output.extend(process_item(processed_line))
     return output
 
@@ -155,9 +142,19 @@ def run_qsplit(parsed):
                '--user', qacls_config.API['user'],
                '--pass', qacls_config.API['pass'],
                '--buckets', str(parsed.with_qsplit),
+               '--aggregate_type', 'files',
                parsed.start_path,
                ]
-    return subprocess.call(cmdlist)
+    if parsed.verbose:
+        print "running qsplit: " + str(cmdlist)
+    try:
+        output = subprocess.check_call(cmdlist)
+        if parsed.verbose:
+            print output
+        return 0
+    except subprocess.CalledProcessError as e:
+        print e.output
+        print "qsplit exited with status %s" % str(e.returncode)
 
 
 def main(parsed):
