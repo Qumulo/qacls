@@ -72,6 +72,11 @@ def load_config(filename):
         AD_USER_BASE_DN, \
         CONTROL_DEFAULT
 
+    if args.dirname:
+        for key in PROTO_SKELETON.keys():
+            if "FILLER" in key:
+                PROTO_SKELETON[key.replace('FILLER', str(args.dirname[0]))] = PROTO_SKELETON.pop(key)
+
     SKELETON = collections.OrderedDict(sorted(PROTO_SKELETON.items()))
 
     RC = RestClient(address=API['host'], port=API['port'])
@@ -292,7 +297,11 @@ def set_acls(skeleton):
                 acelist.append(aces)
         #print acelist
         path = posixpath.join(args.root[0], key.lstrip('/'))
-        RC.fs.set_acl(path=path, control=CONTROL_DEFAULT, aces=acelist)
+        try:
+            RC.fs.set_acl(path=path, control=CONTROL_DEFAULT, aces=acelist)
+        except qumulo.lib.request.RequestError, e:
+            print "WARNING: Attempt to set ACL below on path %s failed because %s" % (path, str(e))
+            print str(acelist)
 
 
 parser = argparse.ArgumentParser(description="Create and modify ACLs on "
@@ -326,6 +335,10 @@ def create_parser():
     parser.add_argument("-r", "--root", help="desired location of skeleton",
                         nargs=1,
                         default="/")
+    parser.add_argument('-d', '--dirname',
+                        help="name to replace subdirectory name after root",
+                        nargs=1,
+                        action='store')
     global args
     args = parser.parse_args()
 
