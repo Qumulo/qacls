@@ -61,3 +61,6 @@ target/
 
 # Mac
 .DS_Store
+
+# Qacls-specific
+file-list.txt
