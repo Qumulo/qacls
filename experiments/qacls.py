@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
+
 from pprint import pprint
+
+from qumulo.rest_client import RestClient
+from qumulo.lib.request import RequestError
 
 import qacls_config
 
@@ -56,6 +60,7 @@ set_parser.add_argument('-p', '--path',
                         required=True)
 
 set_parser.add_argument('-a', '--ace',
+                        dest='aces',
                         action='append',
                         help='ACE name for the ACL to push, defined in the '
                              'configuration file. Can add multiple ACEs by '
@@ -70,6 +75,10 @@ set_parser.add_argument('-G', '--gid',
                         dest='gid',
                         required=False,
                         help='specify group id to be set as group owner')
+
+set_parser.add_argument('-i', '--inheritance',
+                        dest='inheritance',
+                        default='INHERIT_ALL')
 
 # Push permissions down a tree, do the right things with inheritance
 push_parser = subparsers.add_parser('push')
@@ -101,27 +110,75 @@ repair_parser.add_argument('-p', '--path',
                            help='full path to directory to repair',
                            required=True)
 
+# Get a RestClient going
+RC = RestClient(address=qacls_config.QHOST, port=qacls_config.QPORT)
+RC.login(username=qacls_config.QUSER, password=qacls_config.QPASS)
 
-def repair():
+
+def empty_acl():
+    acl = {'aces': [],
+           'control': [],
+           'posix_special_permissions': []}
+    return acl
+
+
+def build_ace(flags, rights, trustee, type_):
+    ace = {'flags': flags,
+           'rights': rights,
+           'trustee': trustee,
+           'type': type_}
+    return ace
+
+
+def get_trustee_from_name(name):
+    response = RC.auth.find_identity(name=name)
+    return response
+
+
+def build_ace_list(args):
+    ace_list = []
+    for ace in args.aces:
+        ace_list.append(get_ace_from_name(ace))
+    return ace_list
+
+
+def get_ace_from_name(ace_name):
+    ace = getattr(qacls_config, ace_name)
+    flags = ace['flags']
+    rights = ace['rights']
+    trustee = get_trustee_from_name(ace['groupname'])
+    type_ = ace['type']
+    return build_ace(flags, rights, trustee, type_)
+
+
+def repair(args):
     print("REPAIR")
 
 
 # shadows built-in set, hopefully it won't be necessary
-def set():
+def set(args):
     print("SET")
+    acl = empty_acl()
+    acl['aces'] = build_ace_list(args)
+    acl['control'] = qacls_config.CONTROL_DEFAULT
+    RC.fs.set_acl_v2(acl, args.path)
 
 
-def create():
+def create(args):
     print("CREATE")
 
 
-def push():
+def push(args):
     print("PUSH")
+
+
+def get_config(e_name):
+    return getattr(qacls_config, e_name)
 
 
 def main():
     args = parser.parse_args()
-    globals()[args.command]()
+    globals()[args.command](args)
 
 
 if __name__ == '__main__':
