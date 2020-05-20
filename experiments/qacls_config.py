@@ -86,6 +86,8 @@ INHERITED = [
     "INHERITED"
 ]
 
+EMPTY_FLAGS = []
+
 # ACEs. Can define command-line accessible ACEs from here. Group name must
 # resolve in AD
 ACE_DOMAIN_ADMINS_FC = {

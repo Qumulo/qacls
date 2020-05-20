@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
+import copy
+
 
 from pprint import pprint
+
+import qtreewalk
 
 from qumulo.rest_client import RestClient
 from qumulo.lib.request import RequestError
@@ -110,9 +114,12 @@ repair_parser.add_argument('-p', '--path',
                            help='full path to directory to repair',
                            required=True)
 
-# Get a RestClient going
 RC = RestClient(address=qacls_config.QHOST, port=qacls_config.QPORT)
 RC.login(username=qacls_config.QUSER, password=qacls_config.QPASS)
+
+
+class QaclsError(Exception):
+    pass
 
 
 def empty_acl():
@@ -120,6 +127,11 @@ def empty_acl():
            'control': [],
            'posix_special_permissions': []}
     return acl
+
+
+# For do_per_file()
+FILE_ACL = empty_acl()
+DIR_ACL = empty_acl()
 
 
 def build_ace(flags, rights, trustee, type_):
@@ -138,12 +150,12 @@ def get_trustee_from_name(name):
 def build_ace_list(args):
     ace_list = []
     for ace in args.aces:
-        ace_list.append(get_ace_from_name(ace))
+        ace_list.append(get_ace_from_config_name(ace))
     return ace_list
 
 
-def get_ace_from_name(ace_name):
-    ace = getattr(qacls_config, ace_name)
+def get_ace_from_config_name(ace_name):
+    ace = get_config(ace_name)
     flags = ace['flags']
     rights = ace['rights']
     trustee = get_trustee_from_name(ace['groupname'])
@@ -151,13 +163,54 @@ def get_ace_from_name(ace_name):
     return build_ace(flags, rights, trustee, type_)
 
 
+# Take the ACL on the chosen directory and make it inherited if it's not already
+# type is 'f' or 'd'
+# Be very careful about how inheritance is handled, if we don't know, bail
+def process_repair_acl(acl, type):
+    local_acl = copy.deepcopy(acl)
+    for ace in local_acl['aces']:
+        if ace['flags'] in (qacls_config.INHERIT_ALL, qacls_config.INHERIT_ALL_INHERITED):
+            if type == 'f':
+                ace['flags'] = qacls_config.INHERITED
+            elif type == 'd':
+                ace['flags'] = qacls_config.INHERIT_ALL_INHERITED
+        # Should we be propagating an ACE that isn't inherited?? I say NO.
+        elif ace['flags'] == qacls_config.EMPTY_FLAGS:
+            # remove it
+            local_acl['aces'].remove(ace)
+        else:
+            raise QaclsError("I don't know how to deal with the ace %s" %
+                             str(ace))
+    return local_acl
+
+
+def repair_do_per_file(ent, d, out_file=None, rc=RC):
+    if ent['type'] == 'FS_FILE_TYPE_FILE':
+        rc.fs.set_acl_v2(path=ent['path'], acl=FILE_ACL)
+    elif ent['type'] == 'FS_FILE_TYPE_DIRECTORY':
+        rc.fs.set_acl_v2(path=ent['path'], acl=DIR_ACL)
+    else:
+        raise QaclsError("I don't know how to deal with the ent type %s" %
+                         ent['type'])
+
+
 def repair(args):
     print("REPAIR")
+    parent_acl = RC.fs.get_acl_v2(path=args.path)
+    pprint(parent_acl)
+    global FILE_ACL
+    FILE_ACL = process_repair_acl(parent_acl, 'f')
+    global DIR_ACL
+    DIR_ACL = process_repair_acl(parent_acl, 'd')
+    qtreewalk.do_per_file = repair_do_per_file
+    qtreewalk.walk_tree(qacls_config.QHOST,
+                        qacls_config.QUSER,
+                        qacls_config.QPASS,
+                        args.path)
 
 
 # shadows built-in set, hopefully it won't be necessary
 def set(args):
-    print("SET")
     acl = empty_acl()
     acl['aces'] = build_ace_list(args)
     acl['control'] = qacls_config.CONTROL_DEFAULT
@@ -165,11 +218,11 @@ def set(args):
 
 
 def create(args):
-    print("CREATE")
+    print("CREATE NOT IMPLEMENTED")
 
 
 def push(args):
-    print("PUSH")
+    print("PUSH NOT IMPLEMENTED")
 
 
 def get_config(e_name):
