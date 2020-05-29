@@ -1,8 +1,8 @@
 # qacls.py
-## A tool for managing ACEs and ACLs on Qumulo QSFS. Rhymes with 'cackles'
+## NEW for 2020! A tool for managing ACEs and ACLs on Qumulo QSFS. Rhymes with 'cackles'
 
 ```
-Copyright (c) 2015 Qumulo, Inc.
+Copyright (c) 2020 Qumulo, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License. You may obtain a copy of
@@ -18,37 +18,36 @@ the License.
 ### INTRO:
 
 Qacls is a collection of permissions management tools that work via the Qumulo
-Core API. Anecdotal evidence suggests it is a bit faster than chmod -R or Windows
-Explorer.
+Core API. It is probably more convenient than other methods, possibly slower.
 
-There are 3 main tools, all of which depend on qacls_config.py:
+There are 4 main subcommands, all of which depend on qacls_config.py:
 
-* qacls.py - Create directory skeletons with fiddly permission sets
-* qacls_push.py - Push a set of ACES or POSIX modes/owner/group down the
+* set - Set a specified ACL on a specified directory
+* create - Create directory skeletons with fiddly permission sets
+* push - Push a set of ACES or POSIX modes/owner/group down the
 specified tree, doing the Right Things with inheritance.
-* qacls_repair.py - Reads the ACL and attributes from the specified directory and
+* repair - Reads the ACL and attributes from the specified directory and
 repairs all permissions inside said directory accordingly. It will push either
 POSIX modes/owner/group or an ACL (if generated is False).
 
 ### SETUP:
 
-Install dependencies with pip:
+Install dependencies with `pip`:
 
 ```
 pip install -r requirements.txt
 ```
 
-Edit qacls_config.py to your liking.
+Edit `qacls_config.py` to your liking.
 
 Set your admin credentials:
 
 ```python
-API = {
-    'host': '192.168.11.147',
-    'port': '8000',
-    'user': 'admin',
-    'pass': 'a'
-}
+# Qumulo cluster address/port/admin credentials
+QHOST = '192.168.11.155'
+QPORT = 8000
+QUSER = 'admin'
+QPASS = 'Admin123'
 ```
 
 Set your distinguished names for searching:

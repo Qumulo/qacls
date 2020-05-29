@@ -141,7 +141,7 @@ def walk_tree(QHOST, QUSER, QPASS, start_path):
     try:
         if args.l:
             log("Combining results.")
-            fw = open("file-list.txt", "w")
+            fw = open("experiments/file-list.txt", "w")
             for f in glob.glob('out-*.txt'):
                 fr = open(f, "r")
                 fw.write(fr.read())
