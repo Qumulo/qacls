@@ -70,6 +70,35 @@ RO = [
     "SYNCHRONIZE"
 ]
 
+# For a directory where admins can move/rename things but users can't
+PARENT_MOVE_RENAME = [
+    "READ",
+    "READ_EA",
+    "READ_ATTR",
+    "READ_ACL",
+    "WRITE_EA",
+    "WRITE_ATTR",
+    "WRITE_ACL",
+    "CHANGE_OWNER",
+    "WRITE_GROUP",
+    "DELETE",
+    "EXECUTE",
+    "MODIFY",
+    "EXTEND",
+    "DELETE_CHILD",
+    "SYNCHRONIZE"
+]
+
+# Read and execute
+RE = [
+    "READ",
+    "READ_EA",
+    "READ_ATTR",
+    "READ_ACL",
+    "EXECUTE",
+    "SYNCHRONIZE"
+]
+
 # Inheritance. Can define multiples and reference them in individual ACLs below
 INHERIT_ALL = [
     "OBJECT_INHERIT",
@@ -102,4 +131,11 @@ ACE_DOMAIN_USERS_RW = {
     "groupname": "Domain Users",
     "flags": INHERIT_ALL,
     "rights": RW
+}
+
+ACE_DOMAIN_UERS_RO = {
+    "type": "ALLOWED",
+    "groupname": "Domain Users",
+    "flags": INHERIT_ALL,
+    "rights": RO
 }
