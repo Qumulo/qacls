@@ -202,7 +202,6 @@ def push_create_acl(args):
 
 
 def repair(args):
-    print("REPAIR")
     parent_acl = RC.fs.get_acl_v2(path=args.path)
     pprint(parent_acl)
     global FILE_ACL
