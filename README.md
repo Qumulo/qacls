@@ -1,4 +1,8 @@
-# qacls.py
+# DEPRECATED: qacls.py
+This repository has been deprecated since it is not well-maintained or tested and will not be converted to support Python 3.  Since Qumulo will no longer support Python 2.7 by the end of this quarter, this repository will be subsequently deleted.
+
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
 ## A tool for managing ACEs and ACLs on Qumulo QSFS. Rhymes with 'cackles'
 
 ```
